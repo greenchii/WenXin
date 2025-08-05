@@ -1,0 +1,38 @@
+<view class="container">
+  <button class="btn btn-top" bindtap="showUploadModal">上传图片/文字</button>
+
+
+  <!-- 弹窗 -->
+  <view wx:if="{{showModal == 1}}" class="modal-mask">
+    <view class="modal-content">
+      <view class="modal-title">上传图片</view>
+      <view class="modal-switch-btn" bindtap="switchModal">点击切换到上传文字</view>
+      <button class="upload-btn" bindtap="chooseImage">选择图片</button>
+      
+      
+      <image wx:if="{{imagePath}}" src="{{imagePath}}" class="preview-img"></image>
+      <view class="modal-actions">
+        <button class="modal-btn" bindtap="uploadImage">上传</button>
+        <button class="modal-btn" bindtap="closeModal">取消</button>
+      </view>
+      
+    </view>
+  </view>
+
+  <view wx:if="{{showModal == -1}}" class="modal-mask">
+    <view class="modal-content">
+      <view class="modal-title">上传文字</view>
+      <view class="modal-switch-btn" bindtap="switchModal">点击切换到上传图片</view>
+      <textarea placeholder="请输入内容"
+        maxlength="200"
+        auto-focus="{{true}}"
+        bindinput="onInput"></textarea>
+        <view class="modal-actions">
+        <button class="modal-btn" bindtap="uploadImage">上传</button>
+        <button class="modal-btn" bindtap="closeModal">取消</button>
+      </view>
+      
+    </view>
+  </view>  
+  <button class="btn btn-bottom" bindtap="goToDatabase">进入个人历史数据库</button>
+</view>

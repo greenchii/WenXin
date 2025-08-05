@@ -1,0 +1,23 @@
+/**app.wxss**/
+/* .container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between; 
+  padding: 0;
+  box-sizing: border-box;
+}  */
+
+:root {
+  /* 绿色系变量 */
+  --green-primary: #07C160;
+  --green-light: #E6F7F0;
+  --green-dark: #00873D;
+  
+  /* 蓝色系变量 */
+  --blue-primary: #1677FF;
+  --blue-light: #E8F3FF;
+  --blue-dark: #0E5CAD;
+}

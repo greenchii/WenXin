@@ -1,0 +1,16 @@
+<t-button style="  width: 100rpx;height: 100rpx;"theme="light" bind:tap="openDrawerIcon" id="drawer-btn" >
+    <t-icon name="menu-fold" size="48rpx" data-name="menu-fold" bind:click="onIconTap" />
+</t-button>
+<t-drawer
+  visible="{{visible}}"
+  placement="{{placement}}"
+  items="{{sidebar}}"
+  bind:overlay-click="overlayClick"
+  bind:item-click="itemClick"
+>
+  <!-- 使用 title 插槽自定义标题内容 -->
+  <view slot="title" class="drawer-title">
+    <t-avatar class="avatar-example" icon="user" />
+    <text class="title-text">问心</text>
+  </view>
+</t-drawer>
