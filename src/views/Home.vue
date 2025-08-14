@@ -181,237 +181,138 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
+import { uploadInfoService, uploadMixedInfoService } from '@/api/user'
+import { ElMessage } from 'element-plus'
 
-const route = useRoute()
-const router = useRouter()
-
-const STORAGE_KEY = 'wenxin_v1'
-
-// 左侧“事项记录”保留原逻辑
+// 事项记录相关状态
 const inputText = ref('')
 const files = ref([])
-function onFileChange(e) {
-  const list = Array.from(e.target.files || [])
-  for (const f of list) files.value.push(f)
-  e.target.value = null
-}
-function removeFile(index) { files.value.splice(index, 1) }
-function submitInput() {
-  const txt = inputText.value.trim()
-  if (!txt && !files.value.length) return alert('请输入内容或选择文件')
-  // 与之前一样把普通记录存入 branches（本功能不与问题记录混淆）
-  const tags = Array.from(txt.matchAll(/#([^\s#]+)/g)).map(m => m[1])
-  const payload = loadStore()
-  // 保持 branches 逻辑（仅本地）
-  let branches = payload.branches || [
-      { name: '会议', items: [] },
-      { name: '财务', items: [] },
-      { name: '生活', items: [] }
-  ]
-  if (!tags.length) {
-      const target = branches.find(b => b.name === '生活') || branches[0]
-      const content = txt || (files.value.map(f => f.name).join('、') || '附件')
-      target.items.unshift(content)
-  } else {
-      tags.forEach(t => {
-          const b = branches.find(x => x.name === t)
-          if (b) {
-              const content = txt || (files.value.map(f => f.name).join('、') || '附件')
-              b.items.unshift(content)
-          }
-      })
-  }
-  payload.branches = branches
-  saveStore(payload)
-  inputText.value = ''
-  files.value = []
-}
+const selectedTag = ref(null)
+const previewItems = ref([])
 
-// --------------- 决策 -> 问题记录（保存到 sidebar/questions） ---------------
+// 事项决策相关状态
 const decisionText = ref('')
 const currentAnswer = ref('')
 
-// helper: load whole store
-function loadStore() {
-  try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      return raw ? JSON.parse(raw) : {}
-  } catch { return {} }
-}
-function saveStore(payload) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload || {}))
-  // 通知 App.vue 更新侧边栏
-  window.dispatchEvent(new Event('questions-updated'))
+// 从文本中提取标签
+const extractTags = (text) => {
+  const tagRegex = /#(\w+)/g
+  const matches = text.match(tagRegex)
+  return matches ? matches.map(tag => tag.substring(1)) : []
 }
 
-// attemptBackendCreate: 如果未来接入后端，这里是调用后端的地方；
-// 约定后端接口（示例）：
-// POST /api/questions  body: { text }
-// 返回: { id, text, answer, createdAt }
-// 如果后端配置为空则返回 null，调用者要做本地 fallback。
-async function attemptBackendCreate(text) {
-  // 如果你启用了后端，把 BASE_URL 填到 env 或这里即可。
-  const BASE = '' // <-- 若要接后端，把后端基础地址放在这里或使用 import.meta.env.VITE_API_BASE
-  if (!BASE) return null
-  try {
-      const res = await fetch(`${BASE.replace(/\/$/, '')}/api/questions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text })
-      })
-      if (!res.ok) throw new Error('backend error')
-      const data = await res.json()
-      return data
-  } catch (e) {
-      console.warn('后端创建问题失败，回退到本地保存', e)
-      return null
-  }
-}
-
-// 本地生成一个回答（占位）
-// 未来可替换为后端返回的真实回答
-function generateLocalAnswer(text) {
-  return `根据您的问题 "${text}"，我的建议（本地模拟答案）：
-1. 分析问题的关键点；
-2. 列出可行方案；
-3. 评估优缺点并选最合适的方案；
-（这是本地模拟，接入后端/模型可返回更智能的答案。）`
-}
-
-async function submitDecision() {
-  const v = decisionText.value.trim()
-  if (!v) return
-
-  // 优先尝试后端；如果没有后端或失败则本地保存
-  const backend = await attemptBackendCreate(v)
-  let record = null
-  if (backend && backend.id) {
-      // 后端返回的数据（假设包含 id, text, answer, createdAt）
-      record = {
-          id: backend.id,
-          text: backend.text || v,
-          answer: backend.answer || '',
-          createdAt: backend.createdAt || new Date().toISOString()
-      }
-  } else {
-      // 本地保存
-      record = {
-          id: Date.now().toString(),
-          text: v,
-          answer: generateLocalAnswer(v),
-          createdAt: new Date().toISOString()
-      }
-  }
-
-  // 写入本地 store.questions（前置 newest）
-  const store = loadStore()
-  store.questions = store.questions || []
-  store.questions.unshift(record)
-  // 保留只保留最近 500 条以避免无限增长（可调整）
-  if (store.questions.length > 500) store.questions.length = 500
-  saveStore(store)
-
-  // 显示回答并切换到该问题的路由（以便 URL 可分享）
-  currentAnswer.value = record.answer
-  decisionText.value = ''
-  router.push({ path: `/question/${record.id}` })
-}
-
-// 当路由里有 question id 时加载对应问题并显示
-function loadQuestionById(id) {
-  if (!id) {
-      currentAnswer.value = ''
-      return
-  }
-  // 先从本地获取
-  const store = loadStore()
-  const q = (store.questions || []).find(x => x.id === id)
-  if (q) {
-      currentAnswer.value = q.answer || ''
-      return
-  }
-  // 如果没有，尝试通过后端拉取（如果已接后端）
-  (async () => {
-      const BASE = '' // 同上，若接后端填地址
-      if (!BASE) return
-      try {
-          const res = await fetch(`${BASE.replace(/\/$/, '')}/api/questions/${id}`)
-          if (!res.ok) return
-          const data = await res.json()
-          currentAnswer.value = data.answer || ''
-      } catch (e) {
-          console.warn('fetch question from backend failed', e)
-      }
-  })()
-}
-
-// --------------- branches / 分类（保留原行为） ---------------
-const branches = reactive([
-  { name: '会议', items: [], count: 0 },
-  { name: '财务', items: [], count: 0 },
-  { name: '生活', items: [], count: 0 }
-])
-
-const selectedTag = ref(null)
-const previewItems = computed(() => {
-  if (!selectedTag.value) return []
-  const b = branches.find(x => x.name === selectedTag.value)
-  return (b?.items || []).slice(0, 8)
+// 计算属性：自动检测标签
+const detectedTags = computed(() => {
+  return extractTags(inputText.value)
 })
 
-function removeRecord(tagName, index) {
-  const branch = branches.find(b => b.name === tagName)
-  if (branch) {
-      branch.items.splice(index, 1)
-      branch.count = branch.items.length
-      // persist branches
-      const store = loadStore()
-      store.branches = branches.map(b => ({ name: b.name, items: b.items }))
-      saveStore(store)
-  }
+// 处理文件选择
+const onFileChange = (e) => {
+  const selectedFiles = Array.from(e.target.files)
+  files.value = [...files.value, ...selectedFiles]
 }
 
-// 加载持久化数据（branches + questions）
-onMounted(() => {
+// 移除文件
+const removeFile = (index) => {
+  files.value.splice(index, 1)
+}
+
+// 更新预览项目
+const updatePreviewItems = (tag) => {
+  // 这里应该调用API获取该标签下的项目
+  // 模拟数据
+  previewItems.value = [
+    `关于${tag}的最新记录1`,
+    `关于${tag}的最新记录2`,
+    `关于${tag}的最新记录3`
+  ]
+}
+
+// 移除记录
+const removeRecord = (tag, index) => {
+  previewItems.value.splice(index, 1)
+  ElMessage.success('记录已删除')
+}
+
+// 提交事项记录
+const submitInput = async () => {
+  if (!inputText.value.trim() && files.value.length === 0) {
+    ElMessage.warning('请输入内容或上传文件')
+    return
+  }
+
   try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) {
-          const parsed = JSON.parse(raw)
-          if (parsed.branches) {
-              parsed.branches.forEach(b => {
-                  const exist = branches.find(x => x.name === b.name)
-                  if (exist) { 
-                      exist.items = b.items || []; 
-                      exist.count = (b.items || []).length 
-                  }
-              })
-          }
-          // 如果路由上带有 question id，则加载
-          const qid = route.params.id
-          if (qid) {
-              loadQuestionById(qid)
-          }
+    const formData = new FormData()
+    
+    // 添加文本内容
+    if (inputText.value.trim()) {
+      formData.append('text', inputText.value)
+      
+      // 自动提取标签
+      const tags = extractTags(inputText.value)
+      if (tags.length > 0) {
+        formData.append('tags', tags.join(','))
       }
-  } catch (e) { 
-      console.warn('加载数据失败', e) 
+    }
+    
+    // 添加文件
+    files.value.forEach(file => {
+      formData.append('files', file)
+    })
+    
+    // 根据是否有文本和文件选择不同的API
+    const api = inputText.value.trim() && files.value.length > 0 
+      ? uploadMixedInfoService 
+      : uploadInfoService
+    
+    const res = await api(formData)
+    
+    if (res.code === 200) {
+      // 清空输入
+      inputText.value = ''
+      files.value = []
+      
+      // 显示成功消息
+      currentAnswer.value = '事项记录已成功保存！'
+      ElMessage.success('事项记录已保存')
+      
+      // 如果是带标签的，更新预览
+      const tags = extractTags(inputText.value)
+      if (tags.length > 0) {
+        selectedTag.value = tags[0]
+        updatePreviewItems(tags[0])
+      }
+    } else {
+      throw new Error(res.message || '上传失败')
+    }
+  } catch (error) {
+    console.error('上传失败:', error)
+    currentAnswer.value = `上传失败: ${error.message}`
+    ElMessage.error(`上传失败: ${error.message}`)
   }
-})
-
-// 如果路由参数变化（点击侧边栏项会触发），则加载对应问题
-watch(() => route.params.id, (nv) => {
-  if (nv) loadQuestionById(nv)
-})
-
-// 保存 branches（保持原保存逻辑）
-// 但注意：questions 的保存由 submitDecision 负责
-function saveBranchesToStore() {
-  const payload = loadStore()
-  payload.branches = branches.map(b => ({ name: b.name, items: b.items }))
-  saveStore(payload)
 }
-watch(branches, () => saveBranchesToStore(), { deep: true })
+
+// 提交决策问题
+const submitDecision = async () => {
+  if (!decisionText.value.trim()) {
+    ElMessage.warning('请输入决策问题')
+    return
+  }
+
+  try {
+    // 这里模拟AI回答，实际应该调用API
+    currentAnswer.value = `关于"${decisionText.value}"，系统正在分析...\n\n建议：这个问题需要考虑多方面因素，建议您先收集更多相关信息，再做出决策。`
+    ElMessage.success('决策问题已提交')
+    
+    // 清空输入
+    decisionText.value = ''
+  } catch (error) {
+    console.error('提交决策失败:', error)
+    currentAnswer.value = `提交失败: ${error.message}`
+    ElMessage.error(`提交失败: ${error.message}`)
+  }
+}
 </script>
 
 <style scoped>

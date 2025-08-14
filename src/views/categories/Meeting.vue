@@ -55,101 +55,167 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watchEffect } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useUserStore } from '@/stores/user.js'
 
-const STORAGE_KEY = 'wenxin_v1'
-const meetingRecords = ref([])
+// 路由
+const router = useRouter()
 const route = useRoute()
 
-// 加载会议记录
-const loadRecords = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (parsed.branches) {
-        const meetingBranch = parsed.branches.find(b => b.name === '会议')
-        if (meetingBranch && meetingBranch.items) {
-          // 转换为带时间和标题的记录格式
-          meetingRecords.value = meetingBranch.items.map((item, index) => {
-            // 提取标题（取前20个字符）
-            const title = item.length > 20 ? item.substring(0, 20) + '...' : item
-            // 生成模拟时间（实际项目中应该在保存时记录真实时间）
-            const date = new Date()
-            date.setDate(date.getDate() - index)
-            const timeStr = date.toLocaleString()
-            
-            return {
-              content: item,
-              title,
-              time: timeStr
-            }
-          })
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('加载会议记录失败', e)
+const userStore = useUserStore()
+
+// 侧边栏状态
+const isSidebarExpanded = ref(false)
+
+// 分组数据结构（会由 refreshSidebar 填充）
+const sidebarSections = ref([
+  { title: '今天', items: [] },
+  { title: '昨天', items: [] },
+  { title: '7天内', items: [] },
+  { title: '30天内', items: [] }
+])
+
+const STORAGE_KEY = 'wenxin_v1'
+
+// 检查登录状态
+const checkLoginStatus = () => {
+  if (!userStore.user || !userStore.user.username) {
+    // 默认未登录状态
+    userStore.setUser({ username: '', nickname: '', avatar: '' })
   }
 }
 
-// 初始化加载
-onMounted(loadRecords)
-
-// 监听路由变化，重新加载数据
-watchEffect(() => {
-  if (route.path === '/meeting') {
-    loadRecords()
+// 读取问题（仍用 localStorage 保存问题数据，但用户信息完全用 store）
+function loadQuestionsFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return (parsed.questions || []).slice()
+  } catch (e) {
+    console.warn('解析问题数据失败', e)
+    return []
   }
+}
+
+function isSameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() &&
+         a.getMonth() === b.getMonth() &&
+         a.getDate() === b.getDate()
+}
+
+function buildSectionsFromQuestions(questions) {
+  const now = new Date()
+  const sections = [
+    { title: '今天', items: [] },
+    { title: '昨天', items: [] },
+    { title: '7天内', items: [] },
+    { title: '30天内', items: [] }
+  ]
+
+  for (const q of questions) {
+    if (!q.createdAt) continue
+    const created = new Date(q.createdAt)
+    const diffMs = now - created
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+    const item = {
+      id: q.id,
+      text: q.text,
+      createdAt: q.createdAt,
+      preview: q.text && q.text.length > 50 ? q.text.slice(0,50) + '...' : (q.text || '')
+    }
+
+    if (isSameDay(created, now)) {
+      sections[0].items.push(item)
+    } else if (diffDays === 1) {
+      sections[1].items.push(item)
+    } else if (diffDays <= 7) {
+      sections[2].items.push(item)
+    } else if (diffDays <= 30) {
+      sections[3].items.push(item)
+    }
+  }
+
+  return sections
+}
+
+// 刷新侧边栏
+function refreshSidebar() {
+  const qs = loadQuestionsFromStorage()
+  qs.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))
+  sidebarSections.value = buildSectionsFromQuestions(qs)
+}
+
+// 跳转到问题详情
+function openQuestion(id) {
+  if (!id) return
+  router.push({ path: `/question/${id}` })
+}
+
+// 格式化时间显示
+function formatTime(iso) {
+  try {
+    const d = new Date(iso)
+    const now = new Date()
+    if (isSameDay(d, now)) {
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+    return d.toLocaleDateString()
+  } catch {
+    return ''
+  }
+}
+
+// 监听问题更新事件
+function onQuestionsUpdated() {
+  refreshSidebar()
+}
+
+// 初始化
+onMounted(() => {
+  checkLoginStatus()
+  const sidebarState = localStorage.getItem('sidebarExpanded')
+  if (sidebarState) {
+    try {
+      isSidebarExpanded.value = JSON.parse(sidebarState)
+    } catch (e) { isSidebarExpanded.value = false }
+  }
+
+  refreshSidebar()
+  window.addEventListener('questions-updated', onQuestionsUpdated)
 })
 
-// 编辑记录
-const editRecord = (index) => {
-  const newContent = prompt('编辑会议记录:', meetingRecords.value[index].content)
-  if (newContent !== null && newContent.trim() !== '') {
-    // 更新本地数据
-    meetingRecords.value[index].content = newContent
-    meetingRecords.value[index].title = newContent.length > 20 
-      ? newContent.substring(0, 20) + '...' 
-      : newContent
-    
-    // 更新到localStorage
-    updateStorage()
+// 保存侧边栏展开状态
+watch(isSidebarExpanded, (newVal) => {
+  localStorage.setItem('sidebarExpanded', JSON.stringify(newVal))
+})
+
+// 路由变化时检查登录
+watch(() => route.path, () => {
+  checkLoginStatus()
+})
+
+// 是否已登录
+const isLoggedIn = computed(() => !!userStore.user?.username)
+
+// 退出登录
+const handleLogout = () => {
+  if (confirm('确定要退出登录吗？')) {
+    userStore.removeToken()
+    userStore.setUser({ username: '', nickname: '', avatar: '' })
+    router.push('/login')
   }
 }
 
-// 删除记录
-const deleteRecord = (index) => {
-  if (confirm('确定要删除这条记录吗？')) {
-    // 从本地数据中删除
-    meetingRecords.value.splice(index, 1)
-    
-    // 更新到localStorage
-    updateStorage()
-  }
-}
-
-// 更新本地存储
-const updateStorage = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      const meetingIndex = parsed.branches.findIndex(b => b.name === '会议')
-      
-      if (meetingIndex !== -1) {
-        // 提取纯文本内容更新到存储
-        parsed.branches[meetingIndex].items = meetingRecords.value.map(r => r.content)
-        parsed.branches[meetingIndex].count = meetingRecords.value.length
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed))
-      }
-    }
-  } catch (e) {
-    console.warn('更新存储失败', e)
-  }
+// 切换侧边栏
+const toggleSidebar = () => {
+  isSidebarExpanded.value = !isSidebarExpanded.value
 }
 </script>
+
+
 
 <style scoped>
 /* 基础样式变量 */

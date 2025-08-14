@@ -22,7 +22,7 @@
         </thead>
         <tbody>
           <tr v-for="(record, index) in lifeRecords" :key="index">
-            <td>{{ record.time }}</td>
+            <td>{{ record.timestamp }}</td>
             <td>{{ record.title }}</td>
             <td class="content-cell">
               <div class="content-text">{{ record.content }}</div>
@@ -55,98 +55,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watchEffect } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed } from 'vue'
+import { useLifeStore } from '@/stores/life'
 
-const STORAGE_KEY = 'wenxin_v1'
-const lifeRecords = ref([])
-const route = useRoute()
-
-// 加载生活记录
-const loadRecords = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (parsed.branches) {
-        const lifeBranch = parsed.branches.find(b => b.name === '生活')
-        if (lifeBranch && lifeBranch.items) {
-          // 转换为带时间和标题的记录格式
-          lifeRecords.value = lifeBranch.items.map((item, index) => {
-            // 提取标题（取前20个字符）
-            const title = item.length > 20 ? item.substring(0, 20) + '...' : item
-            // 生成模拟时间（实际项目中应该在保存时记录真实时间）
-            const date = new Date()
-            date.setDate(date.getDate() - index)
-            const timeStr = date.toLocaleString()
-            
-            return {
-              content: item,
-              title,
-              time: timeStr
-            }
-          })
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('加载生活记录失败', e)
-  }
-}
-
-// 初始化加载
-onMounted(loadRecords)
-
-// 监听路由变化，重新加载数据
-watchEffect(() => {
-  if (route.path === '/life') {
-    loadRecords()
-  }
-})
+const lifeStore = useLifeStore()
+const lifeRecords = computed(() => lifeStore.records)
 
 // 编辑记录
 const editRecord = (index) => {
   const newContent = prompt('编辑生活记录:', lifeRecords.value[index].content)
   if (newContent !== null && newContent.trim() !== '') {
-    // 更新本地数据
-    lifeRecords.value[index].content = newContent
-    lifeRecords.value[index].title = newContent.length > 20 
-      ? newContent.substring(0, 20) + '...' 
-      : newContent
-    
-    // 更新到localStorage
-    updateStorage()
+    lifeStore.updateRecord(index, newContent)
   }
 }
 
 // 删除记录
 const deleteRecord = (index) => {
   if (confirm('确定要删除这条记录吗？')) {
-    // 从本地数据中删除
-    lifeRecords.value.splice(index, 1)
-    
-    // 更新到localStorage
-    updateStorage()
-  }
-}
-
-// 更新本地存储
-const updateStorage = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      const lifeIndex = parsed.branches.findIndex(b => b.name === '生活')
-      
-      if (lifeIndex !== -1) {
-        // 提取纯文本内容更新到存储
-        parsed.branches[lifeIndex].items = lifeRecords.value.map(r => r.content)
-        parsed.branches[lifeIndex].count = lifeRecords.value.length
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed))
-      }
-    }
-  } catch (e) {
-    console.warn('更新存储失败', e)
+    lifeStore.deleteRecord(index)
   }
 }
 </script>
