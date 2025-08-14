@@ -568,8 +568,8 @@ background: rgba(76, 110, 245, 0.2);
 .spacer { flex: 1; }
 
 .submit-btn {
-  background: var(--light-gray);
-  color: #0f172a;
+  background: rgba(76, 110, 245, 0.1);
+  color: var(--accent);
   border: 1px solid var(--border);
   padding: 12px 22px;
   border-radius: 8px;
@@ -577,7 +577,7 @@ background: rgba(76, 110, 245, 0.2);
   font-weight: 500;
   cursor: pointer;
 }
-.submit-btn:hover { background-color: #e2e8f0; }
+.submit-btn:hover { background-color: rgba(76, 110, 245, 0.2); }
 
 .answer-panel { flex: 1; display: flex; flex-direction: column; }
 .answer-content { padding: 20px; background-color: var(--primary-light); border-radius: 10px; min-height: 300px; }
@@ -601,8 +601,8 @@ background: rgba(76, 110, 245, 0.2);
 }
 
 .decision-submit-btn {
-  background: var(--light-gray);
-  color: #0f172a;
+  background: rgba(76, 110, 245, 0.1);
+  color: var(--accent);
   border: 1px solid var(--border);
   padding: 14px 24px;
   border-radius: 8px;
@@ -612,12 +612,12 @@ background: rgba(76, 110, 245, 0.2);
   width: 100%;
   cursor: pointer;
 }
-.decision-submit-btn:hover { background-color: #e2e8f0; }
+.decision-submit-btn:hover { background-color: rgba(76, 110, 245, 0.2); }
 
 /* 右侧信息分类面板 */
 .tag-buttons { display: flex; flex-direction: column; gap: 15px; padding: 10px 0; margin-bottom: 15px; align-items: center; }
 .tag-btn { border: 0; background: var(--light-gray); color: var(--primary); padding: 15px 30px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 18px; text-align: center; transition: all 0.2s; width: 80%; }
-.tag-btn:hover { background: var(--primary); color: white; }
+.tag-btn:hover { background: rgba(76, 110, 245, 0.1); color: var(--accent); }
 .history-preview { margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px; background-color: var(--primary-light); border-radius: 8px; padding: 15px; margin-bottom: 15px; }
 .preview-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .edit-tag, .delete-tag, .close { background: none; border: none; cursor: pointer; color: var(--text-light); padding: 4px; display: flex; align-items: center; justify-content: center; }

@@ -3,9 +3,9 @@ import Home from '../views/Home.vue'
 import Question from '../views/Question.vue'
 import Login from '../views/Login.vue'
 import ProfileEdit from '../views/ProfileEdit.vue'
-import Meeting from '../views/Meeting.vue'    // 会议页面
-import Life from '../views/Life.vue'          // 生活页面
-import Finance from '../views/Finance.vue'    // 财务页面
+import Meeting from '../views/categories/Meeting.vue'    // 会议页面
+import Life from '../views/categories/Life.vue'          // 生活页面
+import Finance from '../views/categories/Finance.vue'    // 财务页面
 
 const routes = [
   {
