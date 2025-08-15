@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
-import {ref} from 'vue'
+import { ref } from 'vue'
+import { getInfoByCategoryService } from '@/api/user' // 引入接口方法
 
 export const useMeetingStore = defineStore('meeting', () => {
-  const records = ref([
+const records = ref([
     {
       _id: '104',
       title: '产品发布会',
@@ -25,6 +26,15 @@ export const useMeetingStore = defineStore('meeting', () => {
       time: '2023-11-30',
     },
   ])
+  // 从后端获取会议数据
+  const fetchRecords = async () => {
+    try {
+      const res = await getInfoByCategoryService('meeting')
+      records.value = [...records.value,res]
+    } catch (err) {
+      console.error('获取会议数据失败:', err)
+    }
+  }
 
   const addRecord = (content) => {
     const title = content.length > 20 ? content.substring(0, 20) + '...' : content
@@ -50,10 +60,9 @@ export const useMeetingStore = defineStore('meeting', () => {
 
   return {
     records,
+    fetchRecords,
     addRecord,
     updateRecord,
     deleteRecord
   }
-}, {
-  persist: true
 })

@@ -57,12 +57,12 @@
 <script setup>
 import { useFinanceStore } from '@/stores/finance'
 import { computed } from 'vue'
-import { ElMessage } from 'element-plus'
+import { onMounted } from 'vue'
 
 const financeStore = useFinanceStore()
 
 // 直接使用 store 中的计算属性
-const financeRecords = computed(() => financeStore.financeRecords)
+const financeRecords = computed(() => financeStore.records)
 
 // 编辑记录
 const editRecord = (id) => {
@@ -85,6 +85,10 @@ const deleteRecord = (id) => {
   }
 }
 
+onMounted(() => {
+  // 页面加载时拉取数据
+  financeStore.fetchRecords()
+})
 </script>
 
 

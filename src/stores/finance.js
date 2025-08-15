@@ -77,17 +77,16 @@ export const useFinanceStore = defineStore('finance', () => {
   },
   ])
 
-  // 计算属性
-  const financeRecords = computed(() => {
-    return records.value
-      .filter(r => r.category === '财务')
-      .map(record => ({
-        ...record,
-        time: new Date(record.timestamp).toLocaleString(),
-        title: record.title || record.content.substring(0, 20) + (record.content.length > 20 ? '...' : '')
-      }))
-  })
-
+  //从后端抓取
+  const fetchRecord=async()=>{
+    try{
+      const res=await getInfoByCategoryService('finance')
+      records.value=[...records.value,res]
+    }catch(error){
+      console.error('获取财务数据失败:', err)      
+    }
+  }
+  
   // 操作方法
   const addRecord = (record) => {
     records.value.push({
@@ -112,7 +111,7 @@ export const useFinanceStore = defineStore('finance', () => {
 
   return {
     records,
-    financeRecords,
+    fetchRecord,
     addRecord,
     editRecord,
     deleteRecord

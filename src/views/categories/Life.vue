@@ -57,6 +57,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useLifeStore } from '@/stores/life'
+import { onMounted } from 'vue'
 
 const lifeStore = useLifeStore()
 const lifeRecords = computed(() => lifeStore.records)
@@ -75,6 +76,11 @@ const deleteRecord = (index) => {
     lifeStore.deleteRecord(index)
   }
 }
+
+onMounted(() => {
+  // 页面加载时拉取数据
+  lifeStore.fetchRecords()
+})
 </script>
 
 <style scoped>

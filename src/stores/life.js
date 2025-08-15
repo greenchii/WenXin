@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
+import {getInfoByCategoryService} from '@/api/user'
 
 export const useLifeStore = defineStore('life', () => {
   // 状态
@@ -19,6 +20,16 @@ export const useLifeStore = defineStore('life', () => {
       timestamp: '2023-09-25',
     }
   ])
+
+  //从后端抓取
+  const fetchRecord=async()=>{
+    try{
+      const res=await getInfoByCategoryService('life')
+      records.value=[...records.value,res]
+    }catch(error){
+      console.error('获取生活数据失败:', err)      
+    }
+  }
 
   // 添加记录
   const addRecord = (content) => {
@@ -48,6 +59,7 @@ export const useLifeStore = defineStore('life', () => {
 
   return {
     records,
+    fetchRecord,
     addRecord,
     updateRecord,
     deleteRecord

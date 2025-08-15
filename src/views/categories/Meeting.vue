@@ -57,6 +57,7 @@
 <script setup>
 import { storeToRefs } from 'pinia'
 import { useMeetingStore } from '@/stores/meeting'
+import { onMounted } from 'vue'
 
 const meetingStore = useMeetingStore()
 const { records: meetingRecords } = storeToRefs(meetingStore)
@@ -73,6 +74,11 @@ const deleteRecord = (index) => {
     meetingStore.deleteRecord(index)
   }
 }
+
+onMounted(() => {
+  // 页面加载时拉取数据
+  meetingStore.fetchRecords()
+})
 </script>
 
 
