@@ -205,8 +205,13 @@ h2 {
   color: #0f172a;
 }
 
+
 .form-group {
   margin-bottom: 20px;
+  /* 确保输入框容器居中 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 label {
@@ -214,10 +219,16 @@ label {
   margin-bottom: 8px;
   font-weight: 500;
   font-size: 14px;
+  /* 让标签与输入框左对齐 */
+  align-self: flex-start;
+  width: 100%;
+  max-width: 320px;
 }
 
 input {
+  /* 输入框固定最大宽度，确保左右边距相等 */
   width: 100%;
+  max-width: 320px;
   padding: 12px 15px;
   border-radius: 8px;
   border: 1px solid var(--border);
@@ -231,22 +242,18 @@ input:focus {
   box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
 }
 
+/* 按钮样式修改 */
 .auth-btn {
-  width: 100%;
-  background: var(--accent);
-  color: white;
-  border: 0;
-  padding: 12px;
+  background: rgba(76, 110, 245, 0.1);
+  color: var(--accent);
+  border: 1px solid var(--border);
+  padding: 14px 24px;
   border-radius: 8px;
-  cursor: pointer;
   font-size: 16px;
   font-weight: 500;
-  transition: background-color 0.2s;
-  margin-bottom: 15px;
-}
-
-.auth-btn:hover {
-  background: #3a5bdb;
+  margin-top: 15px;
+  width: 100%;
+  cursor: pointer;
 }
 
 .toggle-mode {
