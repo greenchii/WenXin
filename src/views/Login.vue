@@ -2,10 +2,7 @@
   <div class="login-container">
     <div class="login-card">
       <div class="logo-wrap">
-        <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
-          <circle cx="32" cy="32" r="28" fill="#4c6ef5" />
-          <path d="M18 34c4-8 12-10 18-10v14c-8 0-14 3-18 8z" fill="white"/>
-        </svg>
+        <img class="logo" src="/favicon.png" alt="网站图标" width="64" height="64">
         <span class="app-name">问心</span>
       </div>
       
@@ -20,6 +17,18 @@
             v-model="username" 
             required
             placeholder="请输入用户名"
+            autocomplete="off"
+          >
+        </div>
+        
+        <div class="form-group" v-if="!isLoginMode">
+          <label for="email">邮箱</label>
+          <input 
+            type="email" 
+            id="email" 
+            v-model="email" 
+            required
+            placeholder="请输入邮箱"
             autocomplete="off"
           >
         </div>
@@ -63,24 +72,33 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { userRegisterService, userLoginService } from '@/api/user'
+import { useUserStore } from '@/stores/user'
 
 // 表单数据
 const username = ref('')
 const password = ref('')
+const email = ref('')
 const confirmPassword = ref('')
 const errorMsg = ref('')
-const isLoginMode = ref(true) // 控制登录/注册模式切换
+const isLoginMode = ref(true)
 
 const router = useRouter()
+const userStore = useUserStore()
 
 // 切换登录/注册模式
 const toggleMode = () => {
   isLoginMode.value = !isLoginMode.value
-  errorMsg.value = '' // 清空错误信息
+  // 清空表单和错误信息
+  username.value = ''
+  password.value = ''
+  email.value = ''
+  confirmPassword.value = ''
+  errorMsg.value = ''
 }
 
 // 处理登录/注册
-const handleAuth = () => {
+const handleAuth = async () => {
   errorMsg.value = ''
   
   // 基本验证
@@ -89,56 +107,56 @@ const handleAuth = () => {
     return
   }
   
-  // 注册模式下验证密码一致性
-  if (!isLoginMode.value && password.value !== confirmPassword.value) {
-    errorMsg.value = '两次输入的密码不一致'
-    return
-  }
-  
-  // 获取本地存储的用户数据
-  const storedUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
-  
-  if (isLoginMode.value) {
-    // 登录逻辑
-    const user = storedUsers.find(u => u.username === username.value && u.password === password.value)
-    if (user) {
-      // 登录成功，保存用户信息
-      localStorage.setItem('user', JSON.stringify({
-        username: user.username,
-        nickname: user.nickname || user.username,
-        avatar: user.avatar || ''
-      }))
-      router.push('/')
-    } else {
-      errorMsg.value = '用户名或密码错误'
-    }
-  } else {
-    // 注册逻辑
-    const userExists = storedUsers.some(u => u.username === username.value)
-    if (userExists) {
-      errorMsg.value = '该用户名已被注册'
+  // 注册模式验证
+  if (!isLoginMode.value) {
+    if (!email.value.trim()) {
+      errorMsg.value = '请输入邮箱'
       return
     }
-    
-    // 保存新用户
-    const newUser = {
-      username: username.value,
-      password: password.value,
-      nickname: username.value,
-      avatar: ''
+    if (password.value !== confirmPassword.value) {
+      errorMsg.value = '两次输入的密码不一致'
+      return
     }
-    
-    storedUsers.push(newUser)
-    localStorage.setItem('registeredUsers', JSON.stringify(storedUsers))
-    
-    // 自动登录新注册用户
-    localStorage.setItem('user', JSON.stringify({
-      username: newUser.username,
-      nickname: newUser.nickname,
-      avatar: newUser.avatar
-    }))
-    
-    router.push('/')
+  }
+
+  try {
+    if (isLoginMode.value) {
+      // 登录逻辑
+      const response = await userLoginService({ 
+        username: username.value, 
+        password: password.value 
+      })
+      
+      // 存储token和用户信息
+      userStore.setToken(response.data.access_token || response.data.token)
+      userStore.setUser({
+        username: username.value
+      })
+      
+      // 同步保存到localStorage
+      localStorage.setItem('user', JSON.stringify({
+        username: username.value
+      }))
+      
+      router.push('/')
+    } else {
+      // 注册逻辑
+      await userRegisterService({ 
+        username: username.value, 
+        password: password.value, 
+        email: email.value 
+      })
+      
+      // 注册成功后切换到登录模式
+      toggleMode()
+      errorMsg.value = '注册成功，请登录'
+    }
+  } catch (err) {
+    // 处理错误信息
+    errorMsg.value = err.response?.data?.error || 
+                    err.response?.data?.message || 
+                    '操作失败，请重试'
+    console.error('认证错误:', err)
   }
 }
 </script>
@@ -177,7 +195,7 @@ const handleAuth = () => {
 
 .app-name {
   font-weight: 700;
-  font-size: 22px;
+  font-size: 36px;
   color: var(--accent);
 }
 
@@ -250,7 +268,6 @@ input:focus {
   margin: 0;
 }
 
-/* 引入全局变量 */
 :root{
   --bg:#f6f8fb; 
   --card:#fff; 
