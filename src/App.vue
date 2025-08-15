@@ -119,16 +119,14 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useUserStore } from '@/stores/user.js'
 
+// 路由
 const router = useRouter()
 const route = useRoute()
 
-// 用户信息
-const currentUser = ref({
-  username: '',
-  nickname: '',
-  avatar: ''
-})
+// 用户状态由 Pinia 管理
+const userStore = useUserStore()
 
 // 侧边栏状态
 const isSidebarExpanded = ref(false)
@@ -145,15 +143,9 @@ const STORAGE_KEY = 'wenxin_v1'
 
 // 检查登录状态并更新用户信息
 const checkLoginStatus = () => {
-  const savedUser = localStorage.getItem('user')
-  if (savedUser) {
-    try {
-      currentUser.value = JSON.parse(savedUser)
-    } catch (e) {
-      currentUser.value = { username: '', nickname: '', avatar: '' }
-    }
-  } else {
-    currentUser.value = { username: '', nickname: '', avatar: '' }
+  // 这里用 Pinia store 的 user 判断是否登录
+  if (!userStore.user || !userStore.user.username) {
+    userStore.setUser({ username: '', nickname: '', avatar: '' })
   }
 }
 
@@ -219,7 +211,7 @@ function refreshSidebar() {
   sidebarSections.value = buildSectionsFromQuestions(qs)
 }
 
-// 跳转到问题详情（Home 或 Question 页面会读取 route.params.id 并显示回答）
+// 跳转到问题详情
 function openQuestion(id) {
   if (!id) return
   router.push({ path: `/question/${id}` })
@@ -239,7 +231,7 @@ function formatTime(iso) {
   }
 }
 
-// 监听问题更新事件（例如 Home 保存问题时触发）
+// 监听问题更新事件
 function onQuestionsUpdated() {
   refreshSidebar()
 }
@@ -271,15 +263,13 @@ watch(() => route.path, () => {
 })
 
 // 是否已登录
-const isLoggedIn = computed(() => {
-  return !!currentUser.value.username
-})
+const isLoggedIn = computed(() => !!userStore.user?.username)
 
 // 退出登录
 const handleLogout = () => {
   if (confirm('确定要退出登录吗？')) {
-    localStorage.removeItem('user')
-    currentUser.value = { username: '', nickname: '', avatar: '' }
+    userStore.removeToken()
+    userStore.setUser({ username: '', nickname: '', avatar: '' })
     router.push('/login')
   }
 }
@@ -289,6 +279,7 @@ const toggleSidebar = () => {
   isSidebarExpanded.value = !isSidebarExpanded.value
 }
 </script>
+
 
 <style scoped>
 :root{
