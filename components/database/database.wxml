@@ -1,0 +1,67 @@
+<view wx:if="{{display == 0 }}" class="side-bar-wrapper" style="height: calc(100vh - {{navbarHeight}}px)">
+  <t-side-bar value="{{sideBarIndex}}" bind:change="onSideBarChange">
+    <!-- 边栏 -->
+    <t-side-bar-item
+      wx:for="{{categories}}"
+      wx:key="label"
+      value="{{item.value || index}}"
+      label="{{item.label}}"
+      disabled="{{item.disabled}}"
+      badge-props="{{item.badgeProps}}"
+    />
+  </t-side-bar>
+  <!-- 内容 -->
+  <view class="content" style="transform: translateY(-{{sideBarIndex * 100}}%)">
+    <scroll-view
+      wx:for="{{categories}}"
+      wx:key="label"
+      class="section"
+      scroll-y
+      scroll-top="{{scrollTop}}"
+      scroll-with-animation
+      show-scrollbar="{{false}}"
+    >
+      <view class="title">{{item.title || item.label}}</view>
+      <t-cell-group>
+        <block wx:for="{{info}}" wx:key="_id" wx:for-item="item">
+            <t-cell 
+                wx:if="{{item.category === categories[sideBarIndex].label}}"
+                t-class-left="cell" 
+                title="{{item.title}}"
+                bindtap="enterPage"
+                data-item="{{item}}"
+            >
+            <view slot="description">
+                <view>类别：{{item.category}}</view>
+                <view style="max-width:50%;">内容：{{item.content}}</view>
+                <view>时间：{{item.timestamp}}</view>
+            </view>
+            <view slot="image">{{item._id}}</view>
+            </t-cell>
+        </block>
+      </t-cell-group>
+    </scroll-view>
+  </view>
+</view>
+
+<view wx:if="{{display == 1 }}" >
+    <view class="navbar-container">
+      <!-- 左侧返回按钮 -->
+      <view class="navbar-left" bindtap="handleBack">
+        <t-icon name="chevron-left" size="24" color="#fff" />
+      </view>
+      
+      <!-- 中间标题 -->
+      <view class="navbar-center">
+        <text class="title" style="color: #fff">{{currentInfo.title}} 详情</text>
+      </view>
+      
+      <!-- 右侧占位元素，用于平衡布局 -->
+      <view class="navbar-right"></view>
+    </view>
+    <t-input label="_id" value="{{currentInfo._id}}" readonly align="right"/>
+    <t-input label="标题" value="{{currentInfo.title}}" readonly align="right"/>
+    <t-input label="类别" value="{{currentInfo.category}}" readonly align="right"/>
+    <t-input label="内容" value="{{currentInfo.content}}" readonly align="right"/>
+    <t-input label="时间" value="{{currentInfo.timestamp}}" readonly align="right"/>
+</view>

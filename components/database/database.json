@@ -1,0 +1,14 @@
+{
+    "component": true,
+    "styleIsolation": "apply-shared",
+    "usingComponents": {
+        "t-side-bar": "tdesign-miniprogram/side-bar/side-bar",
+        "t-side-bar-item": "tdesign-miniprogram/side-bar-item/side-bar-item",
+        "t-cell-group": "tdesign-miniprogram/cell-group/cell-group",
+        "t-cell": "tdesign-miniprogram/cell/cell",
+        "t-image": "tdesign-miniprogram/image/image",
+        "t-input": "tdesign-miniprogram/input/input",
+        "t-navbar": "tdesign-miniprogram/navbar/navbar",
+        "t-icon": "tdesign-miniprogram/icon/icon"
+    }
+}

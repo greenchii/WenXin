@@ -1,0 +1,89 @@
+<view class="header">
+  <image src="/images/WXlogo.png" class="logo"></image>
+  <view class="greeting">欢迎使用问心!</view>
+</view>
+
+<view class="container">
+  <!-- 输入区域 -->
+  <view class="input-bar">
+    <textarea 
+      class="chat-input"
+      placeholder="请输入..."
+      value="{{inputValue}}"
+      bindinput="onInputChange"
+      bindconfirm="sendMessage"
+      maxlength="500"
+      show-confirm-bar="false"
+></textarea>
+
+    <view class="action-buttons">
+      <!-- 添加附件按钮 -->
+      <button class="attach-btn" bindtap="chooseAttachment" hover-class="btn-hover">+</button>
+      
+      <!-- 上传按钮 -->
+      <button class="send-btn" bindtap="sendMessage" hover-class="btn-hover">上传</button>
+    </view>
+  </view>
+</view>
+
+<!-- 表格弹窗（默认隐藏） -->
+<view class="modal-mask" wx:if="{{showCategoryModal}}">
+  <view class="modal-content">
+    <view class="modal-title">内容分类</view>
+    
+    <!-- 表格容器 -->
+    <view class="table">
+      <!-- 表头 -->
+      <view class="table-row header-row">
+        <view class="table-cell">类别</view>
+        <view class="table-cell">内容</view>
+        <view class="table-cell">时间</view>
+      </view>
+      
+      <!-- 内容行 -->
+      <view class="table-row content-row">
+        <!-- 类别（选项） -->
+        <view class="table-cell">
+          <picker 
+            value="{{selectedCategoryIndex}}" 
+            range="{{categoryOptions}}"
+            bindchange="onCategoryChange"
+          >
+            <view class="picker-view">
+              {{categoryOptions[selectedCategoryIndex]}}
+            </view>
+          </picker>
+          <!-- 自定义类别输入框（仅当选择“自定义”时显示） -->
+          <input 
+            wx:if="{{categoryOptions[selectedCategoryIndex] === '自定义'}}"
+            class="custom-input"
+            placeholder="请输入自定义类别"
+            bindinput="onCustomCategoryChange"
+            value="{{customCategory}}"
+          />
+        </view>
+        
+        <!-- 内容（回显输入的文本） -->
+        <view class="table-cell">
+          <view class="content-text">{{pendingContent}}</view>
+        </view>
+        
+        <!-- 时间（默认当前时间，支持手动修改） -->
+        <view class="table-cell">
+          <input 
+            type="text"
+            value="{{timeValue}}"
+            bindinput="onTimeChange"
+            placeholder="请输入时间"
+          />
+        </view>
+      </view>
+    </view>
+    
+    <!-- 底部按钮 -->
+    <view class="modal-buttons">
+      <button bindtap="cancelCategory" class="cancel-btn">取消</button>
+      <button bindtap="confirmCategory" class="confirm-btn">确认</button>
+    </view>
+  </view>
+</view>

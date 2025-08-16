@@ -1,0 +1,185 @@
+.header {
+    display: flex;
+    flex-direction: column; /* 让 logo 和文字垂直排列 */
+    align-items: center;    /* 水平居中 */
+    padding: 30rpx 0;
+  }
+  
+  .logo {
+    margin-bottom: 20rpx; /* 与下方文字保持距离 */
+
+  }
+  
+  .greeting {
+    margin-top: 64rpx;
+    font-size: 64rpx;
+    font-weight: bold;
+  }
+  
+  /* 容器占满屏幕 */
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 200rpx;
+    margin: 32rpx;
+  }
+  
+  
+  /* 输入栏样式 */
+  .input-bar {
+    display: flex;
+    align-items: flex-end;
+    padding: 16rpx 20rpx; /* 左右内边距稍大，避免边缘拥挤 */
+    background-color: #fff;
+    border: 1rpx solid #eee;
+    border-radius: 40rpx; /* 高度的一半，形成胶囊形 */
+}
+
+  
+  /* 输入框样式 */
+  .chat-input {
+    width: 100%;
+    min-height: 80rpx;  /* 最小高度 */
+    padding: 20rpx;
+    border-radius: 40rpx;
+    font-size: 28rpx;
+    /* 防止输入内容超出边框 */
+    box-sizing: border-box;
+  }
+  
+  /* 按钮容器 */
+  .action-buttons {
+    flex-direction: row;
+    display: flex;
+    width: 320rpx;
+    margin-top: 160rpx; /* 与输入框保持距离 */
+  }
+  
+  /* 按钮基础样式 */
+  .btn {
+    width: 80rpx;
+    height: 80rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%; /* 圆形按钮 */
+    margin-top: 300rpx; /* 按钮之间的间距 */
+    font-size: 16rpx; /* 加号和文字稍大，更易点击 */
+    line-height: 1;
+  }
+  
+  /* 附件按钮 */
+  .attach-btn {
+    background-color: #e5e5e5;
+    color: #333;
+  }
+  
+  /* 按钮点击效果 */
+  .btn-hover {
+    opacity: 0.8; /* 点击时稍暗，提供反馈 */
+  }
+  
+  /* 正常状态样式正确 */
+  .send-btn:not([disabled]) {
+    background-color: #6365f1;
+    color: #fff;
+  }
+  
+/* 遮罩层 */
+.modal-mask {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+  }
+  
+  /* 弹窗内容 */
+  .modal-content {
+    width: 90%;
+    max-width: 600rpx;
+    background: white;
+    border-radius: 20rpx;
+    padding: 30rpx;
+  }
+  
+  /* 弹窗标题 */
+  .modal-title {
+    font-size: 32rpx;
+    font-weight: bold;
+    margin-bottom: 30rpx;
+    text-align: center;
+  }
+  
+  /* 表格样式 */
+  .table {
+    width: 100%;
+    border-collapse: collapse; /* 合并边框 */
+  }
+  
+  /* 表格行 */
+  .table-row {
+    display: flex;
+    width: 100%;
+    border-bottom: 1rpx solid #eee;
+  }
+  
+  /* 表头行 */
+  .header-row {
+    background-color: #f5f5f5;
+    font-weight: bold;
+  }
+  
+  /* 表格单元格 */
+  .table-cell {
+    flex: 1; /* 三列平均分配宽度 */
+    padding: 20rpx 10rpx;
+    font-size: 26rpx;
+    word-break: break-all; /* 内容过长时自动换行 */
+  }
+  
+  /* 选择器样式 */
+  .picker-view {
+    padding: 10rpx;
+    border: 1rpx solid #eee;
+    border-radius: 8rpx;
+  }
+  
+  /* 自定义类别输入框 */
+  .custom-input {
+    margin-top: 10rpx;
+    padding: 10rpx;
+    border: 1rpx solid #eee;
+    border-radius: 8rpx;
+    font-size: 24rpx;
+  }
+  
+  /* 内容文本样式 */
+  .content-text {
+    padding: 10rpx;
+    min-height: 50rpx;
+    border: 1rpx solid #eee;
+    border-radius: 8rpx;
+  }
+  
+  /* 底部按钮 */
+  .modal-buttons {
+    display: flex;
+    gap: 20rpx;
+    margin-top: 30rpx;
+  }
+  
+  .cancel-btn {
+    background-color: #f5f5f5;
+    color: #333;
+  }
+  
+  .confirm-btn {
+    background-color: #6365f1;
+    color: white;
+  }
