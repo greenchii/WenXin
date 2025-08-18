@@ -2,12 +2,22 @@
   <div class="records-page">
     <div class="page-header">
       <h1>历史事项记录 -- 会议</h1>
-      <button class="back-btn" @click="$router.push('/')">
+      <button class="back-btn" @click="goHome">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M11.67 3.87L9.9 2.1 0 12l9.9 9.9 1.77-1.77L3.54 12l8.13-8.13z" fill="currentColor"/>
         </svg>
         返回首页
       </button>
+    </div>
+
+    <!-- 引入日历组件（会议页面使用绿色系） -->
+    <div class="calendar-section">
+      <RecordCalendar 
+        :records="meetingRecords" 
+        category="会议"
+        @date-click="handleDateClick"
+        color-system="green"
+      />
     </div>
 
     <div class="records-table-container">
@@ -21,11 +31,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(record, index) in meetingRecords" :key="index">
-            <td>{{ record.time }}</td>
+          <tr v-for="(record, index) in filteredRecords" :key="record._id ?? index">
+            <td>{{ formatDate(record.timestamp) }}</td>
             <td>{{ record.title }}</td>
             <td class="content-cell">
-              <div class="content-text">{{ record.content }}</div>
+              <div class="content-text">{{ record.content ?? record.description }}</div>
             </td>
             <td>
               <button class="edit-btn" @click="editRecord(index)">
@@ -40,10 +50,11 @@
               </button>
             </td>
           </tr>
-          <tr v-if="meetingRecords.length === 0">
+
+          <tr v-if="filteredRecords.length === 0">
             <td colspan="4" class="empty-state">
-              暂无会议记录
-              <button class="add-first-btn" @click="$router.push('/')">
+              {{ activeDate ? `${activeDate.dateStr} 暂无会议记录` : '暂无会议记录' }}
+              <button class="add-first-btn" @click="goHome">
                 添加第一条记录
               </button>
             </td>
@@ -55,43 +66,109 @@
 </template>
 
 <script setup>
-import { storeToRefs } from 'pinia'
+import { computed, onMounted, ref } from 'vue'
 import { useMeetingStore } from '@/stores/meeting'
-import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+// 引入日历组件
+import RecordCalendar from '@/components/RecordCalendar.vue'
 
+// 路由逻辑
+const router = useRouter()
+const goHome = () => router.push('/')
+
+// 会议记录数据（从store获取）
 const meetingStore = useMeetingStore()
-const { records: meetingRecords } = storeToRefs(meetingStore)
+const meetingRecords = computed(() => {
+  // 确保每条记录都有timestamp字段（与财务记录结构一致）
+  return (meetingStore.records ?? []).map(record => ({
+    ...record,
+    // 关键修复：统一日期字段名为timestamp，与财务记录和日历组件保持一致
+    timestamp: record.timestamp || record.time,
+    // 确保分类正确
+    category: record.category || '会议'
+  }))
+})
 
+// 日期格式化工具（与财务页面完全一致）
+const formatDate = (timestamp) => {
+  const date = new Date(timestamp)
+  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
+}
+
+// 筛选后的记录（按日期和分类）
+const activeDate = ref(null)
+const filteredRecords = computed(() => {
+  let result = meetingRecords.value.filter(record => 
+    record.category === '会议'  // 只显示会议分类的记录
+  )
+  
+  // 按选中日期筛选
+  if (activeDate.value) {
+    result = result.filter(record => {
+      const recordDateStr = formatDate(record.timestamp)
+      return recordDateStr === activeDate.value.dateStr
+    })
+  }
+  
+  return result
+})
+
+// 编辑记录（仅处理会议分类）
 const editRecord = (index) => {
-  const newContent = prompt('编辑会议记录:', meetingRecords.value[index].content)
+  const current = filteredRecords.value[index]
+  if (!current || current.category !== '会议') return
+  
+  const newContent = prompt('编辑会议记录:', current.content ?? current.description ?? '')
   if (newContent !== null && newContent.trim() !== '') {
-    meetingStore.updateRecord(index, newContent)
+    // 找到原数组中的索引
+    const originalIndex = meetingStore.records.findIndex(r => r._id === current._id)
+    if (originalIndex !== -1) {
+      meetingStore.updateRecord(originalIndex, newContent)
+      alert('记录已更新')
+    }
   }
 }
 
+// 删除记录（仅处理会议分类）
 const deleteRecord = (index) => {
-  if (confirm('确定要删除这条记录吗？')) {
-    meetingStore.deleteRecord(index)
+  const current = filteredRecords.value[index]
+  if (!current || current.category !== '会议') return
+  
+  if (confirm(`确定要删除"${current.title}"吗？`)) {
+    const originalIndex = meetingStore.records.findIndex(r => r._id === current._id)
+    if (originalIndex !== -1) {
+      meetingStore.deleteRecord(originalIndex)
+      alert('记录已删除')
+    }
   }
 }
 
-onMounted(() => {
-  // 页面加载时拉取数据
-  meetingStore.fetchRecords()
+// 日历日期点击事件（筛选记录）
+const handleDateClick = (date) => {
+  activeDate.value = date // 记录选中的日期
+}
+
+// 初始化加载数据（从后端获取）
+onMounted(async () => {
+  try {
+    await meetingStore.fetchRecords() // 调用store的fetch方法
+  } catch (error) {
+    // 错误由全局拦截器处理，这里保持页面正常显示
+    console.error('加载会议记录失败:', error)
+  }
 })
 </script>
 
-
 <style scoped>
-/* 基础样式变量 */
+/* 与财务页面样式保持一致，仅修改强调色为绿色 */
 :root {
     --primary: #4c6ef5;
     --primary-light: #eef2ff;
     --light-gray: #f1f5f9;
     --text: #0f172a;
     --text-light: #64748b;
-    --accent:#4c6ef5;
-    --border:#e6ecff;
+    --accent: #10b981; /* 会议页面使用绿色作为强调色 */
+    --border: #e6ecff;
     --background: #f8fafc;
     --card: #ffffff;
     --danger: #e53e3e;
@@ -99,9 +176,10 @@ onMounted(() => {
 
 .records-page {
   padding: 30px;
-  min-height: calc(100vh - 44px); /* 减去页脚高度 */
+  min-height: calc(100vh - 44px);
   box-sizing: border-box;
   background-color: var(--background);
+  overflow:auto;
 }
 
 .page-header {
@@ -140,11 +218,18 @@ onMounted(() => {
   height: 18px;
 }
 
+/* 日历区域样式 */
+.calendar-section {
+  margin-bottom: 40px;
+}
+
 .records-table-container {
   background-color: var(--card);
   border-radius: 12px;
   box-shadow: 0 6px 18px rgba(12, 34, 88, 0.06);
-  overflow: hidden;
+  overflow: visible;
+  max-height: 500px; /* 可根据需要调整高度 */
+  overflow-y: auto;
 }
 
 .records-table {
@@ -164,6 +249,9 @@ onMounted(() => {
   background-color: var(--light-gray);
   font-weight: 600;
   color: var(--text);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .content-cell {
@@ -188,7 +276,7 @@ onMounted(() => {
 .edit-btn .icon {
   width: 18px;
   height: 18px;
-  color: var(--primary);
+  color: var(--accent);
 }
 
 .delete-btn .icon {
@@ -198,7 +286,7 @@ onMounted(() => {
 }
 
 .edit-btn:hover .icon {
-  color: #3a5bdb;
+  color: #059669;
 }
 
 .delete-btn:hover .icon {
@@ -213,7 +301,7 @@ onMounted(() => {
 
 .add-first-btn {
   margin-top: 15px;
-  background: var(--primary);
+  background: var(--accent);
   color: white;
   border: none;
   padding: 8px 16px;
@@ -223,10 +311,9 @@ onMounted(() => {
 }
 
 .add-first-btn:hover {
-  background-color: #3a5bdb;
+  background-color: #059669;
 }
 
-/* 响应式调整 */
 @media (max-width: 768px) {
   .records-page {
     padding: 15px;
@@ -243,4 +330,4 @@ onMounted(() => {
   }
 }
 </style>
-   
+

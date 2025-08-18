@@ -15,7 +15,8 @@ const app = createApp(App)
 const pinia = createPinia()
 pinia.use(persist)
 
-app.use(pinia) // ✅ 只 use 一次
+
+app.use(pinia) //  只 use 一次
 app.use(router)
 app.use(ElementPlus)
 

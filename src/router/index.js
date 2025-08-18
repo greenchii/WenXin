@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router' 
+import { createRouter, createWebHistory } from 'vue-router'  
 import Home from '../views/Home.vue'
 import Question from '../views/Question.vue'
 import Login from '../views/Login.vue'
@@ -13,7 +13,7 @@ const routes = [
     name: 'Home',
     component: Home,
     meta: { 
-      requiresAuth: true  // 需要登录才能访问
+      requiresAuth: false  // 不需要登录也能访问首页
     }
   },
 
@@ -86,6 +86,3 @@ router.beforeEach((to, from, next) => {
 })
 
 export default router
-
-
-    

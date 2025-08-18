@@ -1,52 +1,100 @@
 <template>
   <div class="home-container">
-    
     <div class="content-grid">
-      <!-- 左侧列：事项记录和事项决策 -->
+      <!-- 左侧列：问心助手 -->
       <div class="left-column">
-        <!-- 上部：事项记录（保留） -->
-        <section class="panel input-panel">
+        <section class="panel ask-panel">
           <div class="panel-head">
             <svg class="head-ic" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 7h5v2H7zm5 10H7v-2h5v2zm5-6H7v-2h10v2zm0-4H7V7h10v2z" fill="currentColor"/>
+              <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6A4.997 4.997 0 017 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z" fill="currentColor"/>
             </svg>
-            <h3>事项记录</h3>
+            <h3>问心助手</h3>
           </div>
 
-          <div class="composer">
-            <textarea v-model="inputText" placeholder="输入内容或使用 #标签 自动分类（例如：#会议、#财务）"></textarea>
+          <!-- 对话历史区域 -->
+          <div class="conversation-history">
+            <!-- 消息记录 -->
+            <div class="message" v-for="(msg, index) in conversationHistory" :key="index">
+              <div class="message-avatar" :class="{ 'user-avatar': msg.isUser, 'assistant-avatar': !msg.isUser }">
+                <svg v-if="!msg.isUser" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6A4.997 4.997 0 017 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z" fill="currentColor"/>
+                </svg>
+                <svg v-if="msg.isUser" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 5.5c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5 4.5-2 4.5-4.5-2-4.5-4.5-4.5zm0 8c-1.9 0-3.5-1.6-3.5-3.5S10.1 6.5 12 6.5s3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm9 0c0 3.9-3.1 7-7 7h-4c-3.9 0-7-3.1-7-7s3.1-7 7-7h1.5c.8 0 1.5-.7 1.5-1.5S8.3 2 7.5 2H7C2.8 2-1 5.8-1 10s3.8 8 8 8h4c4.2 0 8-3.8 8-8v-1.5c0-.8.7-1.5 1.5-1.5H21c.8 0 1.5.7 1.5 1.5s-.7 1.5-1.5 1.5h-1.5z" fill="currentColor"/>
+                </svg>
+              </div>
+              <div class="message-content" :class="{ 'user-message': msg.isUser, 'assistant-message': !msg.isUser }">
+                {{ msg.content }}
+                
+                <!-- 回答后的操作选项：仅决策咨询显示 -->
+                <div class="reply-options" v-if="!msg.isUser && index === conversationHistory.length - 1 && msg.type === 'consult'">
+                  <button class="reply-btn" @click="handleNewQuestion">新问题</button>
+                  <button class="reply-btn" @click="handleFollowUp">追问</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 初始提示 -->
+            <div class="initial-hint" v-if="conversationHistory.length === 0">
+              欢迎使用问心助手！请输入您想记录的事项或需要咨询的问题...
+            </div>
+          </div>
+
+          <!-- 输入区域 -->
+          <div class="input-area">
+            <textarea 
+              v-model="inputText" 
+              placeholder="输入前请先在下方选择您的需求：记录事项或咨询决策" 
+              class="dark-border-input"
+              @keyup.enter="submitInput"
+            ></textarea>
 
             <div class="action-row">
-              <!-- 图片上传按钮 -->
-              <label class="upload-btn">
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M19 7v2.99s-1.99.01-2 0V7h-3s.01-1.99 0-2h3V2h2v3h3v2h-3zm-3 4V8H5v14h14V11h-4zm-8 8H6v-4h2v4zm0-6H6v-2h2v2zm0-4H6V7h2v2z" fill="currentColor"/>
-                </svg>
-                图片
-                <input type="file" accept="image/*" multiple @change="onFileChange" hidden />
+              <!-- 超链接图标按钮 -->
+              <div class="upload-dropdown" @click.stop>
+                <button class="upload-btn" @click="toggleUploadOptions">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z" fill="currentColor"/>
+                  </svg>
+                </button>
+                
+                <!-- 下拉选项：显示在图标上方 -->
+                <div class="upload-options" v-if="showUploadOptions">
+                  <label class="upload-option">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M19 7v2.99s-1.99.01-2 0V7h-3s.01-1.99 0-2h3V2h2v3h3v2h-3zm-3 4V8H5v14h14V11h-4zm-8 7H6v-4h2v4zm0-6H6v-2h2v2zm10 6h-2v-4h2v4zm0-6h-2v-2h2v2zm-4 6h-2v-4h2v4zm0-6h-2v-2h2v2z" fill="currentColor"/>
+                    </svg>
+                    图片
+                    <input type="file" accept="image/*" @change="onFileChange" hidden />
+                  </label>
+                  <label class="upload-option">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M15 9H3v6h12V9zm-1.5 4.5V15H6v-1.5h7.5zm4.5 0H18v1.5h-1.5V15H15v-1.5h3zm0-3V12H6V9.5h13.5z" fill="currentColor"/>
+                    </svg>
+                    文件
+                    <input type="file" @change="onFileChange" hidden />
+                  </label>
+                  <label class="upload-option">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.42 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" fill="currentColor"/>
+                    </svg>
+                    语音
+                    <input type="file" accept="audio/*" @change="onFileChange" hidden />
+                  </label>
+                </div>
+              </div>
+
+              <!-- 记录事项 / 决策咨询 -->
+              <label class="radio-label">
+                <input type="radio" name="ask-type" value="record" v-model="askType" />
+                <span class="radio-text">记录事项</span>
               </label>
-              
-              <!-- 文件上传按钮 -->
-              <label class="upload-btn">
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M15 9H3v6h12V9zm-1.5 4.5V15H6v-1.5h7.5zm4.5 0H18v1.5h-1.5V15H15v-1.5h3zm0-3V12H6V9.5h13.5z" fill="currentColor"/>
-                </svg>
-                文件
-                <input type="file" multiple @change="onFileChange" hidden />
-              </label>
-              
-              <!-- 语音上传按钮 -->
-              <label class="upload-btn">
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.42 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" fill="currentColor"/>
-                </svg>
-                语音
-                <input type="file" accept="audio/*" @change="onFileChange" hidden />
+              <label class="radio-label">
+                <input type="radio" name="ask-type" value="consult" v-model="askType" />
+                <span class="radio-text">决策咨询</span>
               </label>
 
-              <div class="spacer"></div>
-
-              <!-- 提交按钮（仅用于事项记录） -->
+              <!-- 提交按钮 -->
               <button class="submit-btn" @click="submitInput">
                 提交
               </button>
@@ -68,48 +116,6 @@
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 下部：事项决策 -->
-        <section class="panel decision-panel">
-          <div class="panel-head">
-            <svg class="head-ic" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" fill="currentColor"/>
-            </svg>
-            <h3>事项决策</h3>
-          </div>
-
-          <div class="decision-body">
-            <input v-model="decisionText" placeholder="在这里写下需要决策的问题，按回车或点击提交" @keyup.enter="submitDecision" />
-            <button class="decision-submit-btn" @click="submitDecision">
-              提交
-            </button>
-            
-            <div class="hint" style="margin-top:12px">
-              提示：已提交的问题会保存到侧边栏的问题记录里，点击侧边栏条目可查看当时的回答。
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <!-- 中间列：问心回答 -->
-      <div class="middle-column">
-        <section class="panel answer-panel">
-          <div class="panel-head">
-            <svg class="head-ic" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6A4.997 4.997 0 017 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z" fill="currentColor"/>
-            </svg>
-            <h3>问心回答</h3>
-          </div>
-
-          <div class="answer-content">
-            <div class="answer-placeholder" v-if="!currentAnswer">
-              这里将显示AI对您问题的回答...
-            </div>
-            <div class="answer-text" v-else>
-              {{ currentAnswer }}
             </div>
           </div>
         </section>
@@ -181,137 +187,220 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { uploadInfoService, uploadMixedInfoService } from '@/api/user'
-import { ElMessage } from 'element-plus'
+import { ref, computed, onMounted } from 'vue'
 
-// 事项记录相关状态
-const inputText = ref('')
-const files = ref([])
-const selectedTag = ref(null)
-const previewItems = ref([])
-
-// 事项决策相关状态
-const decisionText = ref('')
-const currentAnswer = ref('')
-
-// 从文本中提取标签
-const extractTags = (text) => {
-  const tagRegex = /#(\w+)/g
-  const matches = text.match(tagRegex)
-  return matches ? matches.map(tag => tag.substring(1)) : []
+// 模拟消息提示
+const ElMessage = {
+  warning: (msg) => console.warn(msg),
+  success: (msg) => console.log(msg),
+  error: (msg) => console.error(msg)
 }
 
-// 计算属性：自动检测标签
-const detectedTags = computed(() => {
-  return extractTags(inputText.value)
+// 后端接口服务（确保内容存储到后端，不保存本地）
+const apiService = {
+  // 保存记录/咨询到后端
+  saveToBackend: (data) => fetch('/api/info/save', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+  }).then(res => res.json()),
+  
+  // 上传带文件的内容到后端
+  uploadWithFiles: (formData) => fetch('/api/info/upload', {
+    method: 'POST',
+    body: formData
+  }).then(res => res.json()),
+  
+  // 获取AI响应
+  getAIResponse: (data) => fetch('/api/ai/response', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+  }).then(res => res.json())
+}
+
+// 状态管理
+const inputText = ref('')                // 输入框内容
+const files = ref([])                   // 已选文件/图片/语音
+const askType = ref('record')           // 记录事项/决策咨询（二选一）
+const showUploadOptions = ref(false)     // 控制上传选项显示
+const selectedTag = ref(null)           // 选中的分类标签
+const previewItems = ref([])            // 标签预览项
+const conversationHistory = ref([])     // 对话历史记录（包含type字段）
+
+// 切换上传选项显示/隐藏
+const toggleUploadOptions = () => {
+  showUploadOptions.value = !showUploadOptions.value
+}
+
+// 点击页面其他区域关闭上传选项
+onMounted(() => {
+  document.addEventListener('click', (e) => {
+    const dropdown = document.querySelector('.upload-dropdown')
+    if (!dropdown?.contains(e.target)) {
+      showUploadOptions.value = false
+    }
+  })
+
+  // 开启新对话，刷新问心助手的对话页面
+  window.addEventListener('new-conversation', () => {
+    // 重置对话状态
+    conversationHistory.value = []
+    inputText.value = ''
+    files.value = []
+  })
 })
 
 // 处理文件选择
 const onFileChange = (e) => {
   const selectedFiles = Array.from(e.target.files)
   files.value = [...files.value, ...selectedFiles]
+  showUploadOptions.value = false  // 选择后关闭选项
 }
 
-// 移除文件
+// 移除已选文件
 const removeFile = (index) => {
   files.value.splice(index, 1)
 }
 
-// 更新预览项目
+// 提交内容到后端
+const submitInput = async () => {
+  if (!inputText.value.trim() && files.value.length === 0) {
+    ElMessage.warning('请输入内容或上传附件')
+    return
+  }
+
+  try {
+    // 添加用户消息到对话历史（包含类型）
+    const userMsg = {
+      isUser: true,
+      content: inputText.value.trim() || `[上传了${files.value.length}个文件]`,
+      type: askType.value
+    }
+    conversationHistory.value.push(userMsg)
+
+    // 1. 准备提交数据
+    const content = inputText.value.trim()
+    const tags = extractTags(content)
+    const primaryTag = tags.length > 0 ? tags[0] : askType.value === 'record' ? 'default' : 'consult'
+
+    // 2. 提交到后端（区分带文件和纯文本）
+    let saveRes
+    if (files.value.length > 0) {
+      const formData = new FormData()
+      formData.append('content', content)
+      formData.append('type', askType.value)
+      formData.append('tag', primaryTag)
+      files.value.forEach(file => {
+        formData.append('files', file)
+      })
+      saveRes = await apiService.uploadWithFiles(formData)
+    } else {
+      saveRes = await apiService.saveToBackend({
+        content,
+        type: askType.value,
+        tag: primaryTag,
+        timestamp: new Date().toISOString()
+      })
+    }
+
+    if (!saveRes.success) {
+      throw new Error(saveRes.message || '保存到后端失败')
+    }
+
+    // 3. 获取AI响应
+    const aiRes = await apiService.getAIResponse({
+      content,
+      type: askType.value,
+      tag: primaryTag,
+      history: conversationHistory.value.slice(0, -1).map(msg => ({
+        role: msg.isUser ? 'user' : 'assistant',
+        content: msg.content
+      }))
+    })
+
+    if (aiRes.success && aiRes.data?.answer) {
+      // 生成AI回复内容（记录事项带分类提示）
+      const aiContent = askType.value === 'record' 
+        ? `事项主题是${content.substring(0, 20)}...，已保存到 #${primaryTag} 分类`
+        : aiRes.data.answer
+
+      // 添加AI回答到对话历史（包含类型）
+      conversationHistory.value.push({
+        isUser: false,
+        content: aiContent,
+        type: askType.value  // 关键：记录消息类型用于控制按钮显示
+      })
+      
+      // 清空输入
+      inputText.value = ''
+      files.value = []
+      
+      // 自动滚动到底部
+      scrollToBottom()
+
+      // 更新信息分类预览
+      selectedTag.value = primaryTag
+      updatePreviewItems(primaryTag)
+    } else {
+      throw new Error(aiRes.message || '获取AI回答失败')
+    }
+  } catch (error) {
+    console.error('提交失败:', error)
+    conversationHistory.value.push({
+      isUser: false,
+      content: `操作失败：${error.message}`,
+      type: askType.value
+    })
+    ElMessage.error(`操作失败：${error.message}`)
+  }
+}
+
+// 处理新问题
+const handleNewQuestion = () => {
+  inputText.value = ''
+  files.value = []
+  scrollToBottom()
+}
+
+// 处理追问
+const handleFollowUp = () => {
+  inputText.value = `追问：${inputText.value}`
+  scrollToBottom()
+  setTimeout(() => {
+    document.querySelector('.dark-border-input')?.focus()
+  }, 100)
+}
+
+// 自动滚动到对话底部
+const scrollToBottom = () => {
+  setTimeout(() => {
+    const container = document.querySelector('.conversation-history')
+    if (container) container.scrollTop = container.scrollHeight
+  }, 100)
+}
+
+// 信息分类相关逻辑
+const extractTags = (text) => {
+  const tagRegex = /#(\w+)/g
+  const matches = text.match(tagRegex)
+  return matches ? matches.map(tag => tag.substring(1)) : []
+}
+const detectedTags = computed(() => extractTags(inputText.value))
 const updatePreviewItems = (tag) => {
-  // 这里应该调用API获取该标签下的项目
-  // 模拟数据
   previewItems.value = [
     `关于${tag}的最新记录1`,
     `关于${tag}的最新记录2`,
     `关于${tag}的最新记录3`
   ]
 }
-
-// 移除记录
 const removeRecord = (tag, index) => {
   previewItems.value.splice(index, 1)
   ElMessage.success('记录已删除')
-}
-
-// 提交事项记录
-const submitInput = async () => {
-  if (!inputText.value.trim() && files.value.length === 0) {
-    ElMessage.warning('请输入内容或上传文件')
-    return
-  }
-
-  try {
-    const formData = new FormData()
-    
-    // 添加文本内容
-    if (inputText.value.trim()) {
-      formData.append('text', inputText.value)
-      
-      // 自动提取标签
-      const tags = extractTags(inputText.value)
-      if (tags.length > 0) {
-        formData.append('tags', tags.join(','))
-      }
-    }
-    
-    // 添加文件
-    files.value.forEach(file => {
-      formData.append('files', file)
-    })
-    
-    // 根据是否有文本和文件选择不同的API
-    const api = inputText.value.trim() && files.value.length > 0 
-      ? uploadMixedInfoService 
-      : uploadInfoService
-    
-    const res = await api(formData)
-    
-    if (res.code === 200) {
-      // 清空输入
-      inputText.value = ''
-      files.value = []
-      
-      // 显示成功消息
-      currentAnswer.value = '事项记录已成功保存！'
-      ElMessage.success('事项记录已保存')
-      
-      // 如果是带标签的，更新预览
-      const tags = extractTags(inputText.value)
-      if (tags.length > 0) {
-        selectedTag.value = tags[0]
-        updatePreviewItems(tags[0])
-      }
-    } else {
-      throw new Error(res.message || '上传失败')
-    }
-  } catch (error) {
-    console.error('上传失败:', error)
-    currentAnswer.value = `上传失败: ${error.message}`
-    ElMessage.error(`上传失败: ${error.message}`)
-  }
-}
-
-// 提交决策问题
-const submitDecision = async () => {
-  if (!decisionText.value.trim()) {
-    ElMessage.warning('请输入决策问题')
-    return
-  }
-
-  try {
-    // 这里模拟AI回答，实际应该调用API
-    currentAnswer.value = `关于"${decisionText.value}"，系统正在分析...\n\n建议：这个问题需要考虑多方面因素，建议您先收集更多相关信息，再做出决策。`
-    ElMessage.success('决策问题已提交')
-    
-    // 清空输入
-    decisionText.value = ''
-  } catch (error) {
-    console.error('提交决策失败:', error)
-    currentAnswer.value = `提交失败: ${error.message}`
-    ElMessage.error(`提交失败: ${error.message}`)
-  }
 }
 </script>
 
@@ -323,72 +412,48 @@ const submitDecision = async () => {
   --light-gray: #f1f5f9;
   --text: #0f172a;
   --text-light: #64748b;
-  --accent:#4c6ef5;
-  --border:#e6ecff;
+  --accent: #4c6ef5;
+  --border: #e6ecff;
   --background: #f8fafc;
   --card: #ffffff;
   --danger: #e53e3e;
+  --user-msg-bg: #f1f5f9; /* 用户消息背景（浅灰色） */
+  --assistant-msg-bg: #ffffff; /* 助手消息背景 */
 }
 
-/* 页面容器占满整个视口高度 */
+/* 确保页面基础显示 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 .home-container {
   padding: 20px;
   min-height: 100vh;
   box-sizing: border-box;
-  margin: 0;
+  background-color: var(--background);
 }
 
-/* 网格布局设置为占满整个高度 */
 .content-grid {
   display: grid;
-  grid-template-columns: 1fr 1.5fr 1fr;
-  grid-template-rows: 100vh;
+  grid-template-columns: 2fr 1fr;
   gap: 20px;
-  height: calc(100vh - 40px); /* 减去padding */
+  height: calc(100vh - 40px);
 }
 
-/* 左侧列使用弹性布局，两个面板各占50% */
-.left-column {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.left-column, .right-column {
   height: 100%;
 }
 
-/* 左侧两个面板各占50%高度 */
-.left-column .input-panel,
-.left-column .decision-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 中间和右侧列占满整个高度 */
-.middle-column, .right-column {
-  height: 100%;
-}
-
-.middle-column .answer-panel,
-.right-column .history-panel {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 确保回答内容区域占满可用空间 */
-.answer-content {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* 面板通用样式 */
 .panel {
   background: var(--card);
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 6px 18px rgba(12, 34, 88, 0.06);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
 }
 
@@ -414,27 +479,119 @@ const submitDecision = async () => {
   color: var(--text);
 }
 
-/* 输入区域样式 */
-.composer {
+.conversation-history {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  background-color: var(--light-gray);
   display: flex;
   flex-direction: column;
   gap: 15px;
-  flex: 1;
 }
 
-textarea {
-  flex: 1;
-  min-height: 120px;
+.initial-hint {
+  color: var(--text-light);
+  font-style: italic;
+  padding: 20px;
+  text-align: center;
+  margin: auto;
+}
+
+.message {
+  display: flex;
+  gap: 10px;
+  max-width: 85%;
+  animation: fadeIn 0.3s ease;
+}
+
+.message-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background-color: var(--light-gray);
+}
+
+.user-avatar {
+  background-color: var(--primary);
+  color: white;
+}
+
+.assistant-avatar {
+  background-color: var(--light-gray);
+  color: var(--primary);
+  border: 1px solid var(--border);
+}
+
+.message-content {
+  padding: 12px 16px;
+  border-radius: 18px;
+  line-height: 1.6;
+  font-size: 15px;
+  position: relative;
+  max-width: calc(100% - 46px);
+}
+
+.user-message {
+  margin-left: auto;
+  background-color: var(--user-msg-bg);
+  border-top-right-radius: 4px;
+}
+
+.assistant-message {
+  margin-right: auto;
+  background-color: var(--assistant-msg-bg);
+  border: 1px solid var(--border);
+  border-top-left-radius: 4px;
+}
+
+.reply-options {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.reply-btn {
+  background: none;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  padding: 5px 12px;
+  border-radius: 15px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reply-btn:hover {
+  background-color: var(--primary);
+  color: white;
+}
+
+.input-area {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.dark-border-input {
+  min-height: 80px;
   resize: vertical;
   padding: 15px;
   border-radius: 10px;
-  border: 1px solid var(--border);
+  border: 2px solid #333; /* 深色边框 */
   font-family: inherit;
   font-size: 15px;
   line-height: 1.5;
 }
 
-textarea:focus {
+.dark-border-input:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
@@ -443,30 +600,94 @@ textarea:focus {
 .action-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
   flex-wrap: wrap;
 }
 
-.upload-btn{
-background: rgba(76, 110, 245, 0.1);
-color: var(--accent);
-padding: 10px 16px;
-border-radius: 8px;
-cursor: pointer;
-display:flex;
-align-items:center;
-gap:8px;
-font-size: 14px;
-font-weight: 500;
-transition:background-color 0.2s;
+.upload-dropdown {
+  position: relative;
+  display: inline-block;
 }
 
-.upload-btn:hover{
-background: rgba(76, 110, 245, 0.2);
+.upload-btn {
+  background: rgba(76, 110, 245, 0.1);
+  color: var(--accent);
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  transition: background-color 0.2s;
 }
 
-.upload-btn .icon { width: 18px; height: 18px; }
-.spacer { flex: 1; }
+.upload-btn:hover {
+  background: rgba(76, 110, 245, 0.2);
+}
+
+.upload-btn .icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* 超链接选项显示在图标上方 */
+.upload-options {
+  position: absolute;
+  bottom: 100%; /* 改为从底部向上显示 */
+  left: 0;
+  margin-bottom: 5px; /* 与按钮保持距离 */
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 150px;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.upload-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.upload-option:hover {
+  background-color: var(--primary-light);
+}
+
+.upload-option .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text);
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.radio-label:hover {
+  background-color: rgba(76, 110, 245, 0.05);
+}
+
+.radio-label input {
+  accent-color: var(--primary);
+}
+
+.radio-text {
+  font-size: 14px;
+  color: var(--text);
+}
 
 .submit-btn {
   background: rgba(76, 110, 245, 0.1);
@@ -477,137 +698,165 @@ background: rgba(76, 110, 245, 0.2);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-}
-.submit-btn:hover { background-color: rgba(76, 110, 245, 0.2); }
-
-.answer-panel { flex: 1; display: flex; flex-direction: column; }
-.answer-content { padding: 20px; background-color: var(--primary-light); border-radius: 10px; min-height: 300px; }
-.answer-placeholder { color: var(--text-light); font-style: italic; }
-.answer-text { text-align: left; line-height: 1.6; }
-
-/* 决策面板 */
-.decision-panel input {
-  width: 100%;
-  padding: 14px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  font-size: 15px;
-  box-sizing: border-box;
+  margin-left: auto;
 }
 
-.decision-panel input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
+.submit-btn:hover {
+  background-color: rgba(76, 110, 245, 0.2);
 }
 
-.decision-submit-btn {
+.files-preview {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.file-list {
+  margin-top: 8px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.file-item .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--text-light);
+}
+
+.remove-file {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--danger);
+  margin-left: auto;
+}
+
+.remove-file .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--danger);
+}
+
+.right-column .history-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tag-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 10px 0;
+  margin-bottom: 15px;
+  align-items: center;
+}
+
+.tag-btn {
+  border: 0;
+  background: var(--light-gray);
+  color: var(--primary);
+  padding: 15px 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 18px;
+  text-align: center;
+  transition: all 0.2s;
+  width: 80%;
+}
+
+.tag-btn:hover {
   background: rgba(76, 110, 245, 0.1);
   color: var(--accent);
-  border: 1px solid var(--border);
-  padding: 14px 24px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  margin-top: 15px;
-  width: 100%;
-  cursor: pointer;
 }
-.decision-submit-btn:hover { background-color: rgba(76, 110, 245, 0.2); }
 
-/* 右侧信息分类面板 */
-.tag-buttons { display: flex; flex-direction: column; gap: 15px; padding: 10px 0; margin-bottom: 15px; align-items: center; }
-.tag-btn { border: 0; background: var(--light-gray); color: var(--primary); padding: 15px 30px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 18px; text-align: center; transition: all 0.2s; width: 80%; }
-.tag-btn:hover { background: rgba(76, 110, 245, 0.1); color: var(--accent); }
-.history-preview { margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px; background-color: var(--primary-light); border-radius: 8px; padding: 15px; margin-bottom: 15px; }
-.preview-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.edit-tag, .delete-tag, .close { background: none; border: none; cursor: pointer; color: var(--text-light); padding: 4px; display: flex; align-items: center; justify-content: center; }
-.edit-tag .icon, .delete-tag .icon, .close .icon { width: 18px; height: 18px; }
-.preview-list { max-height: 200px; overflow-y: auto; padding-right: 8px; }
-.preview-list ul { margin: 10px 0; padding-left: 22px; }
-.hint { margin-top: auto; color: var(--text-light); font-size: 13px; padding-top: 10px; border-top: 1px dashed var(--border); }
-code { background-color: rgba(16, 24, 40, 0.04); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+.history-preview {
+  margin-top: 15px;
+  border-top: 1px dashed var(--border);
+  padding-top: 15px;
+  background-color: var(--primary-light);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
 
-/* 文件预览 */
-.files-preview { margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border); }
-.file-list { margin-top: 8px; }
-.file-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
-.file-item .icon { width: 16px; height: 16px; color: var(--text-light); }
-.remove-file { background: none; border: none; cursor: pointer; color: var(--danger); margin-left: auto; }
-.remove-file .icon { width: 16px; height: 16px; color: var(--danger); }
+.preview-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-light);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.preview-list {
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.preview-list ul {
+  margin: 10px 0;
+  padding-left: 22px;
+}
+
+.hint {
+  margin-top: auto;
+  color: var(--text-light);
+  font-size: 13px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+code {
+  background-color: rgba(16, 24, 40, 0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 /* 响应式调整 */
-@media (max-width: 1400px) {
-  .content-grid {
-      grid-template-columns: 1fr 1fr 1fr;
-  }
-}
-
 @media (max-width: 1200px) {
   .content-grid {
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: auto auto;
-      height: auto;
-      min-height: 100vh;
-  }
-  
-  .left-column {
-      grid-column: span 1;
-      height: 100%;
-  }
-  
-  .middle-column, .right-column {
-      grid-column: span 1;
-      height: 100%;
-  }
-}
-
-@media (max-width: 980px) {
-  .content-grid {
-      grid-template-columns: 1fr;
-      grid-template-rows: auto;
-      height: auto;
-  }
-  
-  .left-column, .middle-column, .right-column {
-      grid-column: span 1;
-      height: auto;
-  }
-  
-  .left-column {
-      flex-direction: column;
-      gap: 20px;
-  }
-  
-  .left-column .input-panel,
-  .left-column .decision-panel {
-      height: auto;
-      min-height: 300px;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: 100vh;
   }
 }
 
 @media (max-width: 600px) {
   .home-container {
-      padding: 10px;
+    padding: 10px;
   }
-  
   .content-grid {
-      gap: 10px;
-  }
-  
-  .action-row {
-      gap: 8px;
-  }
-  
-  .upload-btn, .submit-btn, .decision-submit-btn {
-      padding: 8px 12px;
-      font-size: 13px;
-  }
-  
-  .tag-btn {
-      font-size: 16px;
-      padding: 12px 20px;
-      width: 100%;
+    gap: 10px;
   }
 }
 </style>

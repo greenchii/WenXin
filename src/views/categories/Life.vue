@@ -2,12 +2,22 @@
   <div class="records-page">
     <div class="page-header">
       <h1>历史事项记录 -- 生活</h1>
-      <button class="back-btn" @click="$router.push('/')">
+      <button class="back-btn" @click="goHome">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M11.67 3.87L9.9 2.1 0 12l9.9 9.9 1.77-1.77L3.54 12l8.13-8.13z" fill="currentColor"/>
         </svg>
         返回首页
       </button>
+    </div>
+
+    <!-- 引入日历组件（生活页面使用橙色系） -->
+    <div class="calendar-section">
+      <RecordCalendar 
+        :records="lifeRecords" 
+        category="生活"
+        @date-click="handleDateClick"
+        color-system="orange"
+      />
     </div>
 
     <div class="records-table-container">
@@ -21,11 +31,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(record, index) in lifeRecords" :key="index">
-            <td>{{ record.timestamp }}</td>
+          <tr v-for="(record, index) in filteredRecords" :key="record._id ?? index">
+            <td>{{ formatDate(record.timestamp ?? record.created_at) }}</td>
             <td>{{ record.title }}</td>
             <td class="content-cell">
-              <div class="content-text">{{ record.content }}</div>
+              <div class="content-text">{{ record.content ?? record.description }}</div>
             </td>
             <td>
               <button class="edit-btn" @click="editRecord(index)">
@@ -40,10 +50,11 @@
               </button>
             </td>
           </tr>
-          <tr v-if="lifeRecords.length === 0">
+
+          <tr v-if="filteredRecords.length === 0">
             <td colspan="4" class="empty-state">
-              暂无生活记录
-              <button class="add-first-btn" @click="$router.push('/')">
+              {{ activeDate ? `${activeDate.dateStr} 暂无生活记录` : '暂无生活记录' }}
+              <button class="add-first-btn" @click="goHome">
                 添加第一条记录
               </button>
             </td>
@@ -55,33 +66,100 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useLifeStore } from '@/stores/life'
-import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+// 引入日历组件
+import RecordCalendar from '@/components/RecordCalendar.vue'
 
+// 路由逻辑
+const router = useRouter()
+const goHome = () => router.push('/')
+
+// 生活记录数据
 const lifeStore = useLifeStore()
-const lifeRecords = computed(() => lifeStore.records)
+const lifeRecords = computed(() => lifeStore.records ?? [])
 
-// 编辑记录
+// 日期格式化工具
+const formatDate = (timestamp) => {
+  const date = new Date(timestamp)
+  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
+}
+
+// 筛选后的记录（按日期和分类）
+const activeDate = ref(null)
+const filteredRecords = computed(() => {
+  let result = lifeRecords.value.filter(record => 
+    record.category === '生活'  // 只显示生活分类的记录
+  )
+  
+  // 按选中日期筛选
+  if (activeDate.value) {
+    result = result.filter(record => {
+      const recordDateStr = formatDate(record.timestamp ?? record.created_at)
+      return recordDateStr === activeDate.value.dateStr
+    })
+  }
+  
+  return result
+})
+
+// 编辑记录（仅处理生活分类）
 const editRecord = (index) => {
-  const newContent = prompt('编辑生活记录:', lifeRecords.value[index].content)
+  const current = filteredRecords.value[index]
+  if (!current || current.category !== '生活') return
+  
+  const newContent = prompt('编辑生活记录:', current.content ?? current.description ?? '')
   if (newContent !== null && newContent.trim() !== '') {
-    lifeStore.updateRecord(index, newContent)
+    // 找到原数组中的索引
+    const originalIndex = lifeRecords.value.findIndex(r => r._id === current._id)
+    if (originalIndex !== -1) {
+      lifeStore.updateRecord(originalIndex, newContent)
+      alert('记录已更新（本地）')
+    }
   }
 }
 
-// 删除记录
+// 删除记录（仅处理生活分类）
 const deleteRecord = (index) => {
-  if (confirm('确定要删除这条记录吗？')) {
-    lifeStore.deleteRecord(index)
+  const current = filteredRecords.value[index]
+  if (!current || current.category !== '生活') return
+  
+  if (confirm(`确定要删除"${current.title}"吗？`)) {
+    const originalIndex = lifeRecords.value.findIndex(r => r._id === current._id)
+    if (originalIndex !== -1) {
+      if (typeof lifeStore.deleteRecord === 'function') {
+        lifeStore.deleteRecord(originalIndex)
+      } else if (typeof lifeStore.deleteRecordByIndex === 'function') {
+        lifeStore.deleteRecordByIndex(originalIndex)
+      } else {
+        lifeStore.records.splice(originalIndex, 1)
+      }
+      alert('记录已删除（本地）')
+    }
   }
 }
 
-onMounted(() => {
-  // 页面加载时拉取数据
-  lifeStore.fetchRecords()
+// 日历日期点击事件（筛选记录）
+const handleDateClick = (date) => {
+  activeDate.value = date // 记录选中的日期
+}
+
+// 初始化加载数据
+onMounted(async () => {
+  try {
+    if (typeof lifeStore.fetchRecord === 'function') {
+      await lifeStore.fetchRecord()
+    } else if (typeof lifeStore.fetchRecords === 'function') {
+      await lifeStore.fetchRecords()
+    }
+  } catch (err) {
+    console.error('life fetch error:', err)
+  }
 })
 </script>
+
+
 
 <style scoped>
 /* 基础样式变量 */
@@ -98,11 +176,16 @@ onMounted(() => {
     --danger: #e53e3e;
 }
 
+.calendar-section {
+  margin-bottom: 40px;
+}
+
 .records-page {
   padding: 30px;
   min-height: calc(100vh - 44px); /* 减去页脚高度 */
   box-sizing: border-box;
   background-color: var(--background);
+  overflow:auto;
 }
 
 .page-header {
@@ -244,4 +327,5 @@ onMounted(() => {
   }
 }
 </style>
-   
+
+

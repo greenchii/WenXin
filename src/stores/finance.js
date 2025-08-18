@@ -1,9 +1,8 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
+import { getInfoByCategoryService } from '@/api/user' // <-- 必须导入，保证会发起请求
 
 export const useFinanceStore = defineStore('finance', () => {
-  // 状态
-  
   const records = ref([
     {
       _id: '101',
@@ -19,77 +18,47 @@ export const useFinanceStore = defineStore('finance', () => {
       content: 'Q2预算执行情况审核',
       timestamp: '2023-05-20',
     },
-  {
-    _id: '103',
-    title: '市场经济分析报告',
-    category: '经济',
-    content: '分析近期市场变化与趋势。',
-    timestamp: '2023-04-10',
-  },
-  {
-    _id: '104',
-    title: '产品发布会',
-    category: '会议',
-    content: '发布新一代智能家居产品。',
-    timestamp: '2023-05-05',
-  },
-  {
-    _id: '105',
-    title: '社区志愿活动',
-    category: '生活',
-    content: '参加社区公益清洁活动。',
-    timestamp: '2023-06-12',
-  },
-  {
-    _id: '106',
-    title: '全球经济论坛',
-    category: '经济',
-    content: '讨论国际贸易与投资机会。',
-    timestamp: '2023-07-18',
-  },
-  {
-    _id: '107',
-    title: '部门周例会',
-    category: '会议',
-    content: '汇报本周工作进展。',
-    timestamp: '2023-08-02',
-  },
-  {
-    _id: '108',
-    title: '家庭聚会',
-    category: '生活',
-    content: '一家人聚餐庆祝父母结婚纪念日。',
-    timestamp: '2023-09-25',
-  },
-  {
-    _id: '109',
-    title: '金融政策研讨',
-    category: '经济',
-    content: '探讨新出台的金融监管政策。',
-    timestamp: '2023-10-11',
-  },
-  {
-    _id: '110',
-    title: '年度预算讨论会',
-    category: '会议',
-    content: '确定公司下一年度的预算分配。',
-    timestamp: '2023-11-30',
-  },
   ])
 
-  //从后端抓取
-  const fetchRecord=async()=>{
-    try{
-      const res=await getInfoByCategoryService('finance')
-      records.value=[...records.value,res]
-    }catch(error){
-      console.error('获取财务数据失败:', err)      
+  // 内部统一的结果标准化函数
+  const normalizeList = (data) => {
+    return data.map(item => ({
+      _id: item.id ?? item._id ?? String(Math.random()),
+      title: item.title ?? item.description ?? '',
+      category: item.category ?? 'finance',
+      content: item.content ?? item.description ?? '',
+      timestamp: item.created_at ?? item.timestamp ?? new Date().toISOString()
+    }))
+  }
+
+  // 从后端抓取（主入口，保证会发起真实请求并在失败时抛错）
+  const fetchRecords = async () => {
+    try {
+      const resp = await getInfoByCategoryService('finance')
+      // 兼容多种后端返回结构：直接数组 或 { data: [...] }
+      const data = Array.isArray(resp) ? resp : (resp && Array.isArray(resp.data) ? resp.data : [])
+      if (data.length > 0) {
+        records.value = normalizeList(data)
+      } else {
+        // 如果后端返回空数组，我们选择保留本地 mock 数据（避免页面瞬间空白）
+        // 若你更希望替换成空数组，改为 records.value = []
+      }
+      return records.value
+    } catch (error) {
+      console.error('获取财务数据失败:', error)
+      // 不吞错误，向上抛出 —— 让页面或全局拦截器接管错误展示（你的项目会显示红色“服务异常”）
+      throw error
     }
   }
-  
-  // 操作方法
+
+  // 兼容旧名字：fetchRecord（如果页面调用旧名）
+  const fetchRecord = async () => {
+    return fetchRecords()
+  }
+
+  // 本地/前端的 CRUD 支持（保留）
   const addRecord = (record) => {
-    records.value.push({
+    records.value.unshift({
       ...record,
       _id: Date.now().toString(),
       timestamp: new Date().toISOString()
@@ -102,20 +71,35 @@ export const useFinanceStore = defineStore('finance', () => {
       records.value[index].content = newContent
       records.value[index].title =
         newContent.substring(0, 20) + (newContent.length > 20 ? '...' : '')
+      records.value[index].timestamp = new Date().toISOString()
     }
+  }
+
+  const updateRecord = (index, newContent) => {
+    if (!records.value[index]) return
+    records.value[index].content = newContent
+    records.value[index].title = newContent.substring(0, 20) + (newContent.length > 20 ? '...' : '')
+    records.value[index].timestamp = new Date().toISOString()
   }
 
   const deleteRecord = (id) => {
     records.value = records.value.filter(r => r._id !== id)
   }
 
+  const deleteRecordByIndex = (index) => {
+    if (index >= 0 && index < records.value.length) records.value.splice(index, 1)
+  }
+
   return {
     records,
+    fetchRecords,
     fetchRecord,
     addRecord,
     editRecord,
-    deleteRecord
+    updateRecord,
+    deleteRecord,
+    deleteRecordByIndex
   }
 }, {
-  persist: true 
+  persist: true
 })

@@ -21,11 +21,11 @@
               <span class="tooltip logo-tooltip">问心</span>
             </button>
 
-            <!-- 仅在展开时显示的文字（和你要求一致） -->
+            <!-- 仅在展开时显示的文字 -->
             <span class="logo-text" v-if="isSidebarExpanded">问心</span>
           </div>
 
-          <!-- 仅在侧边栏折叠时显示的打开按钮（保留原行为） -->
+          <!-- 仅在侧边栏折叠时显示的打开按钮 -->
           <button
             class="open-sidebar-btn"
             @click="toggleSidebar"
@@ -38,8 +38,22 @@
             <span class="tooltip">打开边栏</span>
           </button>
 
-          <!-- 侧边栏展开时的头部右侧的收起按钮 -->
+          <!-- 新增：开启新对话按钮（折叠状态下显示在打开按钮下方） -->
+          <button
+            class="new-conversation-btn collapsed"
+            @click="startNewConversation"
+            aria-label="开启新对话"
+            v-if="!isSidebarExpanded"
+          >
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor"/>
+            </svg>
+            <span class="tooltip">开启新对话</span>
+          </button>
+
+          <!-- 侧边栏展开时的头部右侧区域 -->
           <div class="expanded-header" v-if="isSidebarExpanded">
+            <!-- 展开状态下的收起按钮 -->
             <button
               class="close-sidebar-btn"
               @click="toggleSidebar"
@@ -49,6 +63,18 @@
                 <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor"/>
               </svg>
               <span class="tooltip">收起边栏</span>
+            </button>
+
+            <!-- 展开状态下的开启新对话按钮（位于关闭按钮正下方） -->
+            <button
+              class="new-conversation-btn expanded"
+              @click="startNewConversation"
+              aria-label="开启新对话"
+            >
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor"/>
+              </svg>
+              <span class="tooltip">开启新对话</span>
             </button>
           </div>
         </div>
@@ -65,7 +91,6 @@
                 :role="item && item.id ? 'button' : undefined"
                 @click="item && item.id ? openQuestion(item.id) : null"
               >
-                <!-- 如果 item 是字符串（老数据），保持原样显示；否则显示 preview -->
                 <template v-if="typeof item === 'string'">
                   {{ item }}
                 </template>
@@ -78,7 +103,7 @@
           </div>
         </div>
 
-        <!-- 底部图标区域 -->
+        <!-- 底部图标区域（预留空间） -->
         <div class="sidebar-footer" role="navigation" aria-label="Sidebar actions">
           <button
             class="icon-btn"
@@ -215,6 +240,15 @@ function refreshSidebar() {
 function openQuestion(id) {
   if (!id) return
   router.push({ path: `/question/${id}` })
+}
+
+// 新增：开启新对话
+function startNewConversation() {
+  // 导航到首页并刷新组件状态
+  router.push('/').then(() => {
+    // 触发全局事件通知Home组件重置对话
+    window.dispatchEvent(new Event('new-conversation'))
+  })
 }
 
 // 格式化时间显示（在侧边栏可用）
@@ -381,7 +415,7 @@ html,body,#app{ height:100%; width:100%; }
   margin-left: 6px;
 }
 
-/* 打开侧边栏按钮（在logo下方） */
+/* 打开侧边栏按钮 */
 .open-sidebar-btn {
   background: none;
   border: none;
@@ -400,6 +434,57 @@ html,body,#app{ height:100%; width:100%; }
   background-color: rgba(76,110,245,0.06);
 }
 
+/* 开启新对话按钮 - 折叠状态 */
+.new-conversation-btn.collapsed {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border-radius: 6px;
+  position: relative;
+  margin-bottom: 8px;
+  width: 40px;
+  height: 40px;
+}
+
+.new-conversation-btn.collapsed:hover {
+  background-color: rgba(76,110,245,0.06);
+}
+
+/* 展开状态下的按钮容器 */
+.expanded-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* 开启新对话按钮 - 展开状态 */
+.new-conversation-btn.expanded {
+  background: none;
+  color: var(--accent);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border-radius: 6px;
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.new-conversation-btn.expanded:hover {
+  background-color: rgba(76,110,245,0.06);
+}
+
 /* 关闭侧边栏按钮（在右侧） */
 .close-sidebar-btn {
   background: none;
@@ -408,19 +493,22 @@ html,body,#app{ height:100%; width:100%; }
   color: var(--accent);
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px;
+  justify-content: center;
+  padding: 10px;
   border-radius: 6px;
   position: relative;
+  width: 40px;
+  height: 40px;
 }
 
 .close-sidebar-btn:hover {
   background-color: rgba(76,110,245,0.06);
 }
 
-/* 图标尺寸 - 保持你之前的增大设置 */
+/* 图标尺寸 */
 .open-sidebar-btn .icon, 
-.close-sidebar-btn .icon {
+.close-sidebar-btn .icon,
+.new-conversation-btn .icon {
   width: 20px;
   height: 20px;
   display: block;
@@ -437,6 +525,7 @@ html,body,#app{ height:100%; width:100%; }
   padding: 14px;
   flex: 1;
   overflow-y: auto;
+  margin-top: 16px; /* 增加顶部间距，与上方按钮区域分隔开 */
 }
 
 /* 小节标题与项 */
@@ -462,7 +551,7 @@ html,body,#app{ height:100%; width:100%; }
   background-color: rgba(76,110,245,0.06);
 }
 
-/* 底部图标区域 */
+/* 底部图标区域（预留空间） */
 .sidebar-footer {
   padding: 12px;
   border-top: 1px solid var(--border);
@@ -497,8 +586,7 @@ html,body,#app{ height:100%; width:100%; }
 /* 登出使用危险色 */
 .logout-btn { color: var(--danger); }
 
-/* tooltip（靠右显示）——始终隐藏文本直到 hover */
-/* logo tooltip 使用同样样式，但 z-index 更高，避免被遮挡 */
+/* tooltip（靠右显示） */
 .tooltip {
   position: absolute;
   left: calc(100% + 10px);
@@ -517,7 +605,7 @@ html,body,#app{ height:100%; width:100%; }
   z-index: 9999;
 }
 
-/* logo 专用 tooltip（若需要微调样式可以只改这里） */
+/* logo 专用 tooltip */
 .logo-tooltip { left: calc(100% + 8px); }
 
 /* 当 hover 时显示 tooltip（支持键盘 focus） */
@@ -525,25 +613,35 @@ html,body,#app{ height:100%; width:100%; }
 .open-sidebar-btn:hover .tooltip,
 .close-sidebar-btn:hover .tooltip,
 .icon-btn:hover .tooltip,
+.new-conversation-btn:hover .tooltip,
 .logo-btn:focus .logo-tooltip,
 .open-sidebar-btn:focus .tooltip,
 .close-sidebar-btn:focus .tooltip,
-.icon-btn:focus .tooltip {
+.icon-btn:focus .tooltip,
+.new-conversation-btn:focus .tooltip {
   opacity: 1;
   visibility: visible;
   transform: translateY(-50%) translateX(2px);
 }
 
-/* 主内容区域：降低 z-index，避免覆盖 sidebar tooltip */
+/* 主内容区域：Home页面内侧滚动条
+降低 z-index，避免覆盖 sidebar tooltip */
 .main-content {
   flex: 1;
   height: 100vh;
-  overflow: auto;
+  overflow: hidden; /* 完全禁用主容器滚动 */
   transition: margin-left var(--transition-speed) cubic-bezier(.2,.9,.2,1);
   display: flex;
   flex-direction: column;
   position: relative;
   z-index: 10;
+}
+
+/* 新增全局滚动条隐藏样式 */
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  -webkit-appearance: none;
 }
 
 /* 路由视图占位 */
@@ -574,5 +672,3 @@ router-view {
   #app.sidebar-expanded .sidebar { width: var(--sidebar-expanded-width); }
 }
 </style>
-
-

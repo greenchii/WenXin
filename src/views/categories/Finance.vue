@@ -2,12 +2,21 @@
   <div class="records-page">
     <div class="page-header">
       <h1>历史事项记录 -- 财务</h1>
-      <button class="back-btn" @click="$router.push('/')">
+      <button class="back-btn" @click="goHome">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M11.67 3.87L9.9 2.1 0 12l9.9 9.9 1.77-1.77L3.54 12l8.13-8.13z" fill="currentColor"/>
         </svg>
         返回首页
       </button>
+    </div>
+
+    <!-- 引入日历组件（指定分类为财务） -->
+    <div class="calendar-section">
+      <RecordCalendar 
+        :records="financeRecords" 
+        category="财务"
+        @date-click="handleDateClick"
+      />
     </div>
 
     <div class="records-table-container">
@@ -21,11 +30,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(record, index) in financeRecords" :key="index">
-            <td>{{ record.timestamp }}</td>
+          <tr v-for="(record, index) in filteredRecords" :key="record._id ?? index">
+            <td>{{ formatDate(record.timestamp) }}</td>
             <td>{{ record.title }}</td>
             <td class="content-cell">
-              <div class="content-text">{{ record.content }}</div>
+              <div class="content-text">{{ record.content ?? record.description }}</div>
             </td>
             <td>
               <button class="edit-btn" @click="editRecord(index)">
@@ -40,10 +49,11 @@
               </button>
             </td>
           </tr>
-          <tr v-if="financeRecords.length === 0">
+
+          <tr v-if="filteredRecords.length === 0">
             <td colspan="4" class="empty-state">
-              暂无财务记录
-              <button class="add-first-btn" @click="$router.push('/')">
+              {{ activeDate ? `${activeDate.dateStr} 暂无财务记录` : '暂无财务记录' }}
+              <button class="add-first-btn" @click="goHome">
                 添加第一条记录
               </button>
             </td>
@@ -55,45 +65,88 @@
 </template>
 
 <script setup>
+import { computed, onMounted, ref } from 'vue'
 import { useFinanceStore } from '@/stores/finance'
-import { computed } from 'vue'
-import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+// 引入日历组件
+import RecordCalendar from '@/components/RecordCalendar.vue'
 
+// 路由逻辑
+const router = useRouter()
+const goHome = () => router.push('/')
+
+// 财务记录数据（从store获取）
 const financeStore = useFinanceStore()
+const financeRecords = computed(() => financeStore.records ?? [])
 
-// 直接使用 store 中的计算属性
-const financeRecords = computed(() => financeStore.records)
+// 日期格式化工具（统一显示格式）
+const formatDate = (timestamp) => {
+  const date = new Date(timestamp)
+  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
+}
 
-// 编辑记录
-const editRecord = (id) => {
-  const record = financeRecords.value.find(r => r._id === id)
-  if (!record) return
-  const newContent = prompt('编辑财务记录:', record.content)
+// 筛选后的记录（按日期和分类）
+const activeDate = ref(null)
+const filteredRecords = computed(() => {
+  let result = financeRecords.value.filter(record => 
+    record.category === '财务'  // 只显示财务分类的记录
+  )
+  
+  // 按选中日期筛选
+  if (activeDate.value) {
+    result = result.filter(record => {
+      const recordDateStr = formatDate(record.timestamp)
+      return recordDateStr === activeDate.value.dateStr
+    })
+  }
+  
+  return result
+})
+
+// 编辑记录（仅处理财务分类）
+const editRecord = (index) => {
+  const current = filteredRecords.value[index]
+  if (!current || current.category !== '财务') return
+  
+  const newContent = prompt('编辑财务记录:', current.content ?? current.description ?? '')
   if (newContent !== null && newContent.trim() !== '') {
-    financeStore.editRecord(record._id, newContent)
-    ElMessage.success('记录已更新')
+    // 找到原数组中的索引
+    const originalIndex = financeRecords.value.findIndex(r => r._id === current._id)
+    if (originalIndex !== -1) {
+      financeStore.editRecord(current._id, newContent)
+      alert('记录已更新')
+    }
   }
 }
 
-// 删除记录
-const deleteRecord = (id) => {
-  const record = financeRecords.value.find(r => r._id === id)
-  if (!record) return
-  if (confirm(`确定要删除"${record.title}"吗？`)) {
-    financeStore.deleteRecord(record._id)
-    ElMessage.success('记录已删除')
+// 删除记录（仅处理财务分类）
+const deleteRecord = (index) => {
+  const current = filteredRecords.value[index]
+  if (!current || current.category !== '财务') return
+  
+  if (confirm(`确定要删除"${current.title}"吗？`)) {
+    financeStore.deleteRecord(current._id)
+    alert('记录已删除')
   }
 }
 
-onMounted(() => {
-  // 页面加载时拉取数据
-  financeStore.fetchRecords()
+// 日历日期点击事件（筛选记录）
+const handleDateClick = (date) => {
+  activeDate.value = date // 记录选中的日期
+}
+
+// 初始化加载数据（从后端获取）
+onMounted(async () => {
+  try {
+    await financeStore.fetchRecords() // 调用store的fetch方法
+  } catch (error) {
+    // 错误由全局拦截器处理，这里保持页面正常显示
+    console.error('加载财务记录失败:', error)
+  }
 })
 </script>
 
-
 <style scoped>
-/* 基础样式变量 */
 :root {
     --primary: #4c6ef5;
     --primary-light: #eef2ff;
@@ -109,9 +162,10 @@ onMounted(() => {
 
 .records-page {
   padding: 30px;
-  min-height: calc(100vh - 44px); /* 减去页脚高度 */
+  min-height: calc(100vh - 44px);
   box-sizing: border-box;
   background-color: var(--background);
+  overflow: auto;
 }
 
 .page-header {
@@ -148,6 +202,11 @@ onMounted(() => {
 .back-btn .icon {
   width: 18px;
   height: 18px;
+}
+
+/* 日历区域样式 */
+.calendar-section {
+  margin-bottom: 40px;
 }
 
 .records-table-container {
@@ -236,7 +295,6 @@ onMounted(() => {
   background-color: #3a5bdb;
 }
 
-/* 响应式调整 */
 @media (max-width: 768px) {
   .records-page {
     padding: 15px;
@@ -254,4 +312,4 @@ onMounted(() => {
 }
 </style>
 
-    
+
