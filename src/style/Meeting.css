@@ -1,0 +1,178 @@
+/* 与财务页面样式保持一致，仅修改强调色为绿色 */
+.meeting-page {
+  --primary: #4c6ef5;
+  --primary-light: #eef2ff;
+  --light-gray: #f1f5f9;
+  --text: #0f172a;
+  --text-light: #64748b;
+  --accent: #10b981; /* 会议页面使用绿色作为强调色 */
+  --border: #e6ecff;
+  --background: #f8fafc;
+  --card: #ffffff;
+  --danger: #e53e3e;
+}
+
+.records-page {
+  padding: 30px;
+  min-height: calc(100vh - 44px);
+  box-sizing: border-box;
+  background-color: var(--background);
+  overflow: auto;
+}
+
+/* 页面头部 */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.page-header h1 {
+  font-size: 24px;
+  color: var(--text);
+  margin: 0;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--light-gray);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.back-btn:hover {
+  background-color: #e2e8f0;
+}
+
+.back-btn .icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* 日历区域 */
+.calendar-section {
+  margin-bottom: 40px;
+}
+
+/* 表格容器 */
+.records-table-container {
+  background-color: var(--card);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(12, 34, 88, 0.06);
+  overflow: visible;
+  max-height: 500px; /* 可根据需要调整高度 */
+  overflow-y: auto;
+}
+
+.records-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.records-table th,
+.records-table td {
+  padding: 15px 20px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.records-table th {
+  background-color: var(--light-gray);
+  font-weight: 600;
+  color: var(--text);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.content-cell {
+  max-width: 400px;
+}
+
+.content-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 操作按钮 */
+.edit-btn,
+.delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  margin-right: 8px;
+  transition: color 0.2s;
+}
+
+.edit-btn .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+}
+
+.delete-btn .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--danger);
+}
+
+.edit-btn:hover .icon {
+  color: #059669;
+}
+
+.delete-btn:hover .icon {
+  color: #c53030;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-light);
+}
+
+.add-first-btn {
+  margin-top: 15px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.add-first-btn:hover {
+  background-color: #059669;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .records-page {
+    padding: 15px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .records-table-container {
+    overflow-x: auto;
+  }
+}
+:deep(.el-button) {
+  border-radius: 8px;
+}

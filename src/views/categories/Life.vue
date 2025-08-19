@@ -1,4 +1,5 @@
 <template>
+  <div class="life-page">
   <div class="records-page">
     <div class="page-header">
       <h1>历史事项记录 -- 生活</h1>
@@ -95,7 +96,7 @@
     </el-dialog>
   </div>
 
-
+</div>
 </template>
 
 <script setup>
