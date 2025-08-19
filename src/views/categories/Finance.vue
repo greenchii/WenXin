@@ -10,7 +10,7 @@
       </button>
     </div>
 
-    <!-- 引入日历组件（指定分类为财务） -->
+    <!-- 日历 -->
     <div class="calendar-section">
       <RecordCalendar 
         :records="financeRecords" 
@@ -19,6 +19,7 @@
       />
     </div>
 
+    <!-- 表格 -->
     <div class="records-table-container">
       <table class="records-table">
         <thead>
@@ -37,7 +38,7 @@
               <div class="content-text">{{ record.content ?? record.description }}</div>
             </td>
             <td>
-              <button class="edit-btn" @click="editRecord(index)">
+              <button class="edit-btn" @click="openEditDialog(record)">
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
                 </svg>
@@ -61,6 +62,38 @@
         </tbody>
       </table>
     </div>
+
+    <!-- 编辑弹窗 -->
+    <el-dialog v-model="isEditDialogVisible" title="编辑财务记录" width="500px">
+      <el-form :model="editForm" label-width="80px">
+        <el-form-item label="上传时间">
+          <!-- 日期默认值保留 record 原值 -->
+          <el-date-picker
+            v-model="editForm.timestamp"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="选择日期"
+            style="width: 100%;"
+          />
+        </el-form-item>
+        <el-form-item label="主题">
+          <el-input v-model="editForm.title" />
+        </el-form-item>
+        <el-form-item label="详细内容">
+          <el-input type="textarea" v-model="editForm.content" rows="4" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="isEditDialogVisible = false">取消</el-button>
+        <el-button 
+          type="primary" 
+          @click="submitEdit"
+          style="background-color: rgba(76, 110, 245, 0.1); color: #4c6ef5; border: none;"
+        >
+          提交
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -68,79 +101,73 @@
 import { computed, onMounted, ref } from 'vue'
 import { useFinanceStore } from '@/stores/finance'
 import { useRouter } from 'vue-router'
-// 引入日历组件
+import { ElMessage } from 'element-plus'
 import RecordCalendar from '@/components/RecordCalendar.vue'
 
-// 路由逻辑
 const router = useRouter()
 const goHome = () => router.push('/')
 
-// 财务记录数据（从store获取）
 const financeStore = useFinanceStore()
 const financeRecords = computed(() => financeStore.records ?? [])
 
-// 日期格式化工具（统一显示格式）
 const formatDate = (timestamp) => {
   const date = new Date(timestamp)
   return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
 }
 
-// 筛选后的记录（按日期和分类）
 const activeDate = ref(null)
 const filteredRecords = computed(() => {
-  let result = financeRecords.value.filter(record => 
-    record.category === '财务'  // 只显示财务分类的记录
-  )
-  
-  // 按选中日期筛选
+  let result = financeRecords.value.filter(record => record.category === '财务')
   if (activeDate.value) {
     result = result.filter(record => {
       const recordDateStr = formatDate(record.timestamp)
       return recordDateStr === activeDate.value.dateStr
     })
   }
-  
   return result
 })
 
-// 编辑记录（仅处理财务分类）
-const editRecord = (index) => {
-  const current = filteredRecords.value[index]
-  if (!current || current.category !== '财务') return
-  
-  const newContent = prompt('编辑财务记录:', current.content ?? current.description ?? '')
-  if (newContent !== null && newContent.trim() !== '') {
-    // 找到原数组中的索引
-    const originalIndex = financeRecords.value.findIndex(r => r._id === current._id)
-    if (originalIndex !== -1) {
-      financeStore.editRecord(current._id, newContent)
-      alert('记录已更新')
-    }
-  }
+// 编辑弹窗控制
+const isEditDialogVisible = ref(false)
+const editForm = ref({
+  _id: '',
+  timestamp: '',
+  title: '',
+  content: ''
+})
+
+const openEditDialog = (record) => {
+  editForm.value = { ...record }
+  isEditDialogVisible.value = true
 }
 
-// 删除记录（仅处理财务分类）
+const submitEdit = () => {
+  financeStore.editRecord(editForm.value._id, {
+    title: editForm.value.title,
+    content: editForm.value.content,
+    timestamp: editForm.value.timestamp
+  })
+  ElMessage.success('记录已更新')
+  isEditDialogVisible.value = false
+}
+
 const deleteRecord = (index) => {
   const current = filteredRecords.value[index]
   if (!current || current.category !== '财务') return
-  
   if (confirm(`确定要删除"${current.title}"吗？`)) {
     financeStore.deleteRecord(current._id)
-    alert('记录已删除')
+    ElMessage.success('记录已删除')
   }
 }
 
-// 日历日期点击事件（筛选记录）
 const handleDateClick = (date) => {
-  activeDate.value = date // 记录选中的日期
+  activeDate.value = date
 }
 
-// 初始化加载数据（从后端获取）
 onMounted(async () => {
   try {
-    await financeStore.fetchRecords() // 调用store的fetch方法
+    await financeStore.fetchRecords()
   } catch (error) {
-    // 错误由全局拦截器处理，这里保持页面正常显示
     console.error('加载财务记录失败:', error)
   }
 })
@@ -311,5 +338,3 @@ onMounted(async () => {
   }
 }
 </style>
-
-

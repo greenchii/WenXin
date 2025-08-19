@@ -10,7 +10,6 @@
       </button>
     </div>
 
-    <!-- 引入日历组件（生活页面使用橙色系） -->
     <div class="calendar-section">
       <RecordCalendar 
         :records="lifeRecords" 
@@ -32,13 +31,13 @@
         </thead>
         <tbody>
           <tr v-for="(record, index) in filteredRecords" :key="record._id ?? index">
-            <td>{{ formatDate(record.timestamp ?? record.created_at) }}</td>
+            <td>{{ formatDate(record.timestamp) }}</td>
             <td>{{ record.title }}</td>
             <td class="content-cell">
-              <div class="content-text">{{ record.content ?? record.description }}</div>
+              <div class="content-text">{{ record.content }}</div>
             </td>
             <td>
-              <button class="edit-btn" @click="editRecord(index)">
+              <button class="edit-btn" @click="openEditDialog(record)">
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
                 </svg>
@@ -62,129 +61,134 @@
         </tbody>
       </table>
     </div>
+
+    <!-- 编辑弹窗 -->
+    <el-dialog v-model="isEditDialogVisible" title="编辑生活记录" width="500px">
+      <el-form :model="editForm" label-width="80px">
+        <el-form-item label="上传时间">
+          <!-- 日期默认值保留 record 原值 -->
+          <el-date-picker
+            v-model="editForm.timestamp"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="选择日期"
+            style="width: 100%;"
+          />
+        </el-form-item>
+        <el-form-item label="主题">
+          <el-input v-model="editForm.title" />
+        </el-form-item>
+        <el-form-item label="详细内容">
+          <el-input type="textarea" v-model="editForm.content" rows="4" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="isEditDialogVisible = false">取消</el-button>
+        <el-button 
+          type="primary" 
+          @click="submitEdit"
+          style="background-color: rgba(76, 110, 245, 0.1); color: #4c6ef5; border: none;"
+        >
+          提交
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
+
+
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useLifeStore } from '@/stores/life'
 import { useRouter } from 'vue-router'
-// 引入日历组件
+import { useLifeStore } from '@/stores/life'
 import RecordCalendar from '@/components/RecordCalendar.vue'
+import { ElMessage } from 'element-plus'
 
-// 路由逻辑
 const router = useRouter()
 const goHome = () => router.push('/')
 
-// 生活记录数据
 const lifeStore = useLifeStore()
 const lifeRecords = computed(() => lifeStore.records ?? [])
 
-// 日期格式化工具
 const formatDate = (timestamp) => {
   const date = new Date(timestamp)
-  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
+  return `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}`
 }
 
-// 筛选后的记录（按日期和分类）
 const activeDate = ref(null)
 const filteredRecords = computed(() => {
-  let result = lifeRecords.value.filter(record => 
-    record.category === '生活'  // 只显示生活分类的记录
-  )
-  
-  // 按选中日期筛选
+  let result = lifeRecords.value.filter(r => r.category === '生活')
   if (activeDate.value) {
-    result = result.filter(record => {
-      const recordDateStr = formatDate(record.timestamp ?? record.created_at)
-      return recordDateStr === activeDate.value.dateStr
-    })
+    result = result.filter(r => formatDate(r.timestamp) === activeDate.value.dateStr)
   }
-  
   return result
 })
 
-// 编辑记录（仅处理生活分类）
-const editRecord = (index) => {
-  const current = filteredRecords.value[index]
-  if (!current || current.category !== '生活') return
-  
-  const newContent = prompt('编辑生活记录:', current.content ?? current.description ?? '')
-  if (newContent !== null && newContent.trim() !== '') {
-    // 找到原数组中的索引
-    const originalIndex = lifeRecords.value.findIndex(r => r._id === current._id)
-    if (originalIndex !== -1) {
-      lifeStore.updateRecord(originalIndex, newContent)
-      alert('记录已更新（本地）')
-    }
-  }
+// 编辑弹窗控制
+const isEditDialogVisible = ref(false)
+const editForm = ref({
+  _id: '',
+  timestamp: '',
+  title: '',
+  content: ''
+})
+
+const openEditDialog = (record) => {
+  editForm.value = { ...record }
+  isEditDialogVisible.value = true
 }
 
-// 删除记录（仅处理生活分类）
+const submitEdit = () => {
+  financeStore.editRecord(editForm.value._id, {
+    title: editForm.value.title,
+    content: editForm.value.content,
+    timestamp: editForm.value.timestamp
+  })
+  ElMessage.success('记录已更新')
+  isEditDialogVisible.value = false
+}
+
 const deleteRecord = (index) => {
   const current = filteredRecords.value[index]
   if (!current || current.category !== '生活') return
-  
   if (confirm(`确定要删除"${current.title}"吗？`)) {
-    const originalIndex = lifeRecords.value.findIndex(r => r._id === current._id)
-    if (originalIndex !== -1) {
-      if (typeof lifeStore.deleteRecord === 'function') {
-        lifeStore.deleteRecord(originalIndex)
-      } else if (typeof lifeStore.deleteRecordByIndex === 'function') {
-        lifeStore.deleteRecordByIndex(originalIndex)
-      } else {
-        lifeStore.records.splice(originalIndex, 1)
-      }
-      alert('记录已删除（本地）')
-    }
+    financeStore.deleteRecord(current._id)
+    ElMessage.success('记录已删除')
   }
 }
 
-// 日历日期点击事件（筛选记录）
 const handleDateClick = (date) => {
-  activeDate.value = date // 记录选中的日期
+  activeDate.value = date
 }
 
-// 初始化加载数据
 onMounted(async () => {
   try {
-    if (typeof lifeStore.fetchRecord === 'function') {
-      await lifeStore.fetchRecord()
-    } else if (typeof lifeStore.fetchRecords === 'function') {
-      await lifeStore.fetchRecords()
-    }
-  } catch (err) {
-    console.error('life fetch error:', err)
+    await financeStore.fetchRecords()
+  } catch (error) {
+    console.error('加载生活记录失败:', error)
   }
 })
 </script>
 
-
-
 <style scoped>
-/* 基础样式变量 */
 :root {
-    --primary: #4c6ef5;
-    --primary-light: #eef2ff;
-    --light-gray: #f1f5f9;
-    --text: #0f172a;
-    --text-light: #64748b;
-    --accent:#4c6ef5;
-    --border:#e6ecff;
-    --background: #f8fafc;
-    --card: #ffffff;
-    --danger: #e53e3e;
-}
-
-.calendar-section {
-  margin-bottom: 40px;
+  --primary: #4c6ef5;
+  --primary-light: #eef2ff;
+  --light-gray: #f1f5f9;
+  --text: #0f172a;
+  --text-light: #64748b;
+  --accent:#4c6ef5;
+  --border:#e6ecff;
+  --background: #f8fafc;
+  --card: #ffffff;
+  --danger: #e53e3e;
 }
 
 .records-page {
   padding: 30px;
-  min-height: calc(100vh - 44px); /* 减去页脚高度 */
-  box-sizing: border-box;
-  background-color: var(--background);
+  min-height: calc(100vh - 44px);
+  background: var(--background);
   overflow:auto;
 }
 
@@ -195,137 +199,47 @@ onMounted(async () => {
   margin-bottom: 30px;
 }
 
-.page-header h1 {
-  font-size: 24px;
-  color: var(--text);
-  margin: 0;
-}
-
 .back-btn {
   display: flex;
   align-items: center;
   gap: 8px;
   background: var(--light-gray);
-  color: var(--text);
-  border: 1px solid var(--border);
+  border:1px solid var(--border);
+  border-radius:8px;
   padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
+  cursor:pointer;
+  font-size:14px;
 }
-
-.back-btn:hover {
-  background-color: #e2e8f0;
-}
-
-.back-btn .icon {
-  width: 18px;
-  height: 18px;
-}
+.back-btn:hover { background:#e2e8f0 }
+.back-btn .icon { width:18px;height:18px }
 
 .records-table-container {
-  background-color: var(--card);
+  background: var(--card);
   border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(12, 34, 88, 0.06);
+  box-shadow:0 6px 18px rgba(12,34,88,0.06);
   overflow: hidden;
 }
 
-.records-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 600px;
-}
+.records-table { width:100%; border-collapse: collapse; min-width:600px; }
+.records-table th, .records-table td { padding:15px 20px; text-align:left; border-bottom:1px solid var(--border); }
+.records-table th { background: var(--light-gray); font-weight:600; color:var(--text); }
 
-.records-table th,
-.records-table td {
-  padding: 15px 20px;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-}
+.content-cell { max-width:400px; }
+.content-text { white-space: nowrap; overflow:hidden; text-overflow: ellipsis; }
 
-.records-table th {
-  background-color: var(--light-gray);
-  font-weight: 600;
-  color: var(--text);
-}
+.edit-btn, .delete-btn { background:none; border:none; cursor:pointer; padding:4px; margin-right:8px; }
+.edit-btn .icon { width:18px;height:18px;color: var(--primary); }
+.delete-btn .icon { width:18px;height:18px;color: var(--danger); }
+.edit-btn:hover .icon { color:#3a5bdb; }
+.delete-btn:hover .icon { color:#c53030; }
 
-.content-cell {
-  max-width: 400px;
-}
+.empty-state { text-align:center; padding:60px 20px; color:var(--text-light); }
+.add-first-btn { margin-top:15px; background: var(--primary); color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; }
+.add-first-btn:hover { background:#3a5bdb; }
 
-.content-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.edit-btn, .delete-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  margin-right: 8px;
-  transition: color 0.2s;
-}
-
-.edit-btn .icon {
-  width: 18px;
-  height: 18px;
-  color: var(--primary);
-}
-
-.delete-btn .icon {
-  width: 18px;
-  height: 18px;
-  color: var(--danger);
-}
-
-.edit-btn:hover .icon {
-  color: #3a5bdb;
-}
-
-.delete-btn:hover .icon {
-  color: #c53030;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-light);
-}
-
-.add-first-btn {
-  margin-top: 15px;
-  background: var(--primary);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.add-first-btn:hover {
-  background-color: #3a5bdb;
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .records-page {
-    padding: 15px;
-  }
-  
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-  }
-  
-  .records-table-container {
-    overflow-x: auto;
-  }
+@media (max-width:768px){
+  .records-page { padding:15px; }
+  .page-header { flex-direction:column; align-items:flex-start; gap:15px; }
+  .records-table-container { overflow-x:auto; }
 }
 </style>
-
-

@@ -9,14 +9,14 @@ export const useMeetingStore = defineStore('meeting', () => {
       title: '市场经济分析报告',
       category: '会议',
       content: '分析近期市场变化与趋势。',
-      timestamp: '2023-04-10', // 统一使用timestamp字段
+      timestamp: '2023-04-10',
     },
     {
       _id: '104',
       title: '产品发布会',
       category: '会议',
       content: '发布新一代智能家居产品，包含智能音箱、灯光控制系统。',
-      timestamp: '2023-05-05', // 统一使用timestamp字段
+      timestamp: '2023-05-05',
     },
     {
       _id: '106',
@@ -48,7 +48,7 @@ export const useMeetingStore = defineStore('meeting', () => {
     },
   ])
 
-  // 内部统一的结果标准化函数（与财务保持一致）
+  // 标准化函数
   const normalizeList = (data) => {
     return data.map(item => ({
       _id: item.id ?? item._id ?? String(Math.random()),
@@ -59,11 +59,10 @@ export const useMeetingStore = defineStore('meeting', () => {
     }))
   }
 
-  // 从后端抓取（与财务保持一致的实现）
+  // 获取数据
   const fetchRecords = async () => {
     try {
       const resp = await getInfoByCategoryService('meeting')
-      // 兼容多种后端返回结构：直接数组 或 { data: [...] }
       const data = Array.isArray(resp) ? resp : (resp && Array.isArray(resp.data) ? resp.data : [])
       if (data.length > 0) {
         records.value = normalizeList(data)
@@ -71,87 +70,46 @@ export const useMeetingStore = defineStore('meeting', () => {
       return records.value
     } catch (error) {
       console.error('获取会议数据失败:', error)
-      throw error // 不吞错误，让全局处理
+      throw error
     }
   }
 
-  // 兼容旧名字
-  const fetchRecord = async () => {
-    return fetchRecords()
-  }
-
   // 添加新记录
-  const addRecord = (content) => {
-    const title = content.length > 20 ? content.substring(0, 20) + '...' : content
-    const timeStr = new Date().toISOString().split('T')[0]
+  const addRecord = (record) => {
     records.value.unshift({
+      ...record,
       _id: Date.now().toString(),
-      content,
-      title,
-      timestamp: timeStr, // 使用timestamp字段
+      timestamp: new Date().toISOString().split('T')[0],
       category: '会议'
     })
   }
 
-  // 编辑记录（按ID）
-  const editRecord = (id, newContent) => {
+  // 编辑记录
+  const editRecord = (id, updated) => {
     const index = records.value.findIndex(r => r._id === id)
     if (index !== -1) {
-      records.value[index].content = newContent
-      records.value[index].title = newContent.substring(0, 20) + (newContent.length > 20 ? '...' : '')
-      records.value[index].timestamp = new Date().toISOString().split('T')[0]
+      records.value[index] = {
+        ...records.value[index],
+        ...updated,
+        title: updated.title,
+        content: updated.content,
+        timestamp: updated.timestamp || records.value[index].timestamp
+      }
     }
   }
 
-  // 更新记录（按索引）
-  const updateRecord = (index, newContent) => {
-    if (!records.value[index]) return
-    records.value[index].content = newContent
-    records.value[index].title = newContent.substring(0, 20) + (newContent.length > 20 ? '...' : '')
-    records.value[index].timestamp = new Date().toISOString().split('T')[0]
-  }
-
-  // 删除记录（按ID）
+  // 删除记录
   const deleteRecord = (id) => {
     records.value = records.value.filter(r => r._id !== id)
-  }
-
-  // 按索引删除
-  const deleteRecordByIndex = (index) => {
-    if (index >= 0 && index < records.value.length) records.value.splice(index, 1)
-  }
-
-  // 按单个日期统计数量
-  const getRecordsCountByDate = (date) => {
-    if (!date) return 0
-    return records.value.filter(item => {
-      const recordDate = new Date(item.timestamp).toISOString().split('T')[0]
-      return recordDate === date
-    }).length
-  }
-
-  // 按日期筛选记录
-  const getRecordsByDate = (date) => {
-    if (!date) return [...records.value]
-    return records.value.filter(item => {
-      const recordDate = new Date(item.timestamp).toISOString().split('T')[0]
-      return recordDate === date
-    })
   }
 
   return {
     records,
     fetchRecords,
-    fetchRecord,
     addRecord,
     editRecord,
-    updateRecord,
-    deleteRecord,
-    deleteRecordByIndex,
-    getRecordsCountByDate,
-    getRecordsByDate
+    deleteRecord
   }
 }, {
-  persist: true // 与财务保持一致，添加持久化
+  persist: true
 })
-    

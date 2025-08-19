@@ -78,7 +78,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 
-// 接收父组件传入的记录数据和分类（必传）
+// 接收父组件传入的记录数据和分类
 const props = defineProps({
   records: {
     type: Array,
@@ -185,7 +185,7 @@ watch(() => props.records, () => {
 }
 
 .nav-btn {
-  background: var(--light-gray);
+  background: rgba(76, 110, 245, 0.1);
   color: var(--text);
   border: 1px solid var(--border);
   padding: 8px 16px;
@@ -196,7 +196,7 @@ watch(() => props.records, () => {
 }
 
 .nav-btn:hover {
-  background-color: #e2e8f0;
+  background: rgba(76, 110, 245, 0.2);
 }
 
 .month-range {

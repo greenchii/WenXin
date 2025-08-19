@@ -10,7 +10,7 @@
       </button>
     </div>
 
-    <!-- 引入日历组件（会议页面使用绿色系） -->
+    <!-- 日历 -->
     <div class="calendar-section">
       <RecordCalendar 
         :records="meetingRecords" 
@@ -20,6 +20,7 @@
       />
     </div>
 
+    <!-- 表格 -->
     <div class="records-table-container">
       <table class="records-table">
         <thead>
@@ -38,12 +39,12 @@
               <div class="content-text">{{ record.content ?? record.description }}</div>
             </td>
             <td>
-              <button class="edit-btn" @click="editRecord(index)">
+              <button class="edit-btn" @click="openEditDialog(record)">
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
                 </svg>
               </button>
-              <button class="delete-btn" @click="deleteRecord(index)">
+              <button class="delete-btn" @click="confirmDelete(record)">
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/>
                 </svg>
@@ -62,6 +63,36 @@
         </tbody>
       </table>
     </div>
+
+    <!-- 编辑弹窗 -->
+    <el-dialog v-model="editDialogVisible" title="编辑会议记录" width="500px">
+      <el-form :model="editForm" label-width="100px">
+        <el-form-item label="上传时间">
+          <el-date-picker
+            v-model="editForm.timestamp"
+            type="date"
+            placeholder="选择日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+          />
+        </el-form-item>
+        <el-form-item label="主题">
+          <el-input v-model="editForm.title" />
+        </el-form-item>
+        <el-form-item label="详细内容">
+          <el-input type="textarea" v-model="editForm.content" :rows="4" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDialogVisible = false">取消</el-button>
+        <el-button
+          :style="{ backgroundColor: 'rgba(76, 110, 245, 0.1)', color: '#4c6ef5' }"
+          @click="submitEdit"
+        >
+          提交
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -69,109 +100,98 @@
 import { computed, onMounted, ref } from 'vue'
 import { useMeetingStore } from '@/stores/meeting'
 import { useRouter } from 'vue-router'
-// 引入日历组件
+import { ElMessage, ElMessageBox } from 'element-plus'
 import RecordCalendar from '@/components/RecordCalendar.vue'
 
-// 路由逻辑
+// 路由
 const router = useRouter()
 const goHome = () => router.push('/')
 
-// 会议记录数据（从store获取）
+// store
 const meetingStore = useMeetingStore()
-const meetingRecords = computed(() => {
-  // 确保每条记录都有timestamp字段（与财务记录结构一致）
-  return (meetingStore.records ?? []).map(record => ({
+const meetingRecords = computed(() =>
+  (meetingStore.records ?? []).map(record => ({
     ...record,
-    // 关键修复：统一日期字段名为timestamp，与财务记录和日历组件保持一致
     timestamp: record.timestamp || record.time,
-    // 确保分类正确
     category: record.category || '会议'
   }))
-})
+)
 
-// 日期格式化工具（与财务页面完全一致）
+// 工具
 const formatDate = (timestamp) => {
   const date = new Date(timestamp)
   return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
 }
 
-// 筛选后的记录（按日期和分类）
+// 筛选
 const activeDate = ref(null)
 const filteredRecords = computed(() => {
-  let result = meetingRecords.value.filter(record => 
-    record.category === '会议'  // 只显示会议分类的记录
-  )
-  
-  // 按选中日期筛选
+  let result = meetingRecords.value.filter(r => r.category === '会议')
   if (activeDate.value) {
-    result = result.filter(record => {
-      const recordDateStr = formatDate(record.timestamp)
-      return recordDateStr === activeDate.value.dateStr
-    })
+    result = result.filter(r => formatDate(r.timestamp) === activeDate.value.dateStr)
   }
-  
   return result
 })
 
-// 编辑记录（仅处理会议分类）
-const editRecord = (index) => {
-  const current = filteredRecords.value[index]
-  if (!current || current.category !== '会议') return
-  
-  const newContent = prompt('编辑会议记录:', current.content ?? current.description ?? '')
-  if (newContent !== null && newContent.trim() !== '') {
-    // 找到原数组中的索引
-    const originalIndex = meetingStore.records.findIndex(r => r._id === current._id)
-    if (originalIndex !== -1) {
-      meetingStore.updateRecord(originalIndex, newContent)
-      alert('记录已更新')
-    }
+// 编辑弹窗
+const editDialogVisible = ref(false)
+const editForm = ref({ _id: '', timestamp: '', title: '', content: '' })
+
+const openEditDialog = (record) => {
+  editForm.value = {
+    _id: record._id,
+    timestamp: record.timestamp,
+    title: record.title,
+    content: record.content
   }
+  editDialogVisible.value = true
 }
 
-// 删除记录（仅处理会议分类）
-const deleteRecord = (index) => {
-  const current = filteredRecords.value[index]
-  if (!current || current.category !== '会议') return
-  
-  if (confirm(`确定要删除"${current.title}"吗？`)) {
-    const originalIndex = meetingStore.records.findIndex(r => r._id === current._id)
-    if (originalIndex !== -1) {
-      meetingStore.deleteRecord(originalIndex)
-      alert('记录已删除')
-    }
-  }
+const submitEdit = () => {
+  if (!editForm.value._id) return
+  meetingStore.editRecord(editForm.value._id, { ...editForm.value })
+  ElMessage.success('会议记录已更新')
+  editDialogVisible.value = false
 }
 
-// 日历日期点击事件（筛选记录）
+// 删除
+const confirmDelete = (record) => {
+  ElMessageBox.confirm(
+    `确定要删除 "${record.title}" 吗？`,
+    '提示',
+    { type: 'warning' }
+  )
+    .then(() => {
+      meetingStore.deleteRecord(record._id)
+      ElMessage.success('会议记录已删除')
+    })
+    .catch(() => {})
+}
+
+// 日历点击
 const handleDateClick = (date) => {
-  activeDate.value = date // 记录选中的日期
+  activeDate.value = date
 }
 
-// 初始化加载数据（从后端获取）
-onMounted(async () => {
-  try {
-    await meetingStore.fetchRecords() // 调用store的fetch方法
-  } catch (error) {
-    // 错误由全局拦截器处理，这里保持页面正常显示
-    console.error('加载会议记录失败:', error)
-  }
+// 初始化
+onMounted(() => {
+  meetingStore.fetchRecords()
 })
 </script>
 
 <style scoped>
 /* 与财务页面样式保持一致，仅修改强调色为绿色 */
 :root {
-    --primary: #4c6ef5;
-    --primary-light: #eef2ff;
-    --light-gray: #f1f5f9;
-    --text: #0f172a;
-    --text-light: #64748b;
-    --accent: #10b981; /* 会议页面使用绿色作为强调色 */
-    --border: #e6ecff;
-    --background: #f8fafc;
-    --card: #ffffff;
-    --danger: #e53e3e;
+  --primary: #4c6ef5;
+  --primary-light: #eef2ff;
+  --light-gray: #f1f5f9;
+  --text: #0f172a;
+  --text-light: #64748b;
+  --accent: #10b981; /* 会议页面使用绿色作为强调色 */
+  --border: #e6ecff;
+  --background: #f8fafc;
+  --card: #ffffff;
+  --danger: #e53e3e;
 }
 
 .records-page {
@@ -179,9 +199,10 @@ onMounted(async () => {
   min-height: calc(100vh - 44px);
   box-sizing: border-box;
   background-color: var(--background);
-  overflow:auto;
+  overflow: auto;
 }
 
+/* 页面头部 */
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -218,11 +239,12 @@ onMounted(async () => {
   height: 18px;
 }
 
-/* 日历区域样式 */
+/* 日历区域 */
 .calendar-section {
   margin-bottom: 40px;
 }
 
+/* 表格容器 */
 .records-table-container {
   background-color: var(--card);
   border-radius: 12px;
@@ -264,7 +286,9 @@ onMounted(async () => {
   text-overflow: ellipsis;
 }
 
-.edit-btn, .delete-btn {
+/* 操作按钮 */
+.edit-btn,
+.delete-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -293,6 +317,7 @@ onMounted(async () => {
   color: #c53030;
 }
 
+/* 空状态 */
 .empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -314,20 +339,23 @@ onMounted(async () => {
   background-color: #059669;
 }
 
+/* 响应式 */
 @media (max-width: 768px) {
   .records-page {
     padding: 15px;
   }
-  
+
   .page-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 15px;
   }
-  
+
   .records-table-container {
     overflow-x: auto;
   }
 }
+:deep(.el-button) {
+  border-radius: 8px;
+}
 </style>
-
