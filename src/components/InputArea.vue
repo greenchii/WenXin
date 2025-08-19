@@ -78,7 +78,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { defineProps, defineEmits } from 'vue'
+import { defineEmits } from 'vue'
 
 const props = defineProps({
   inputText: String,
