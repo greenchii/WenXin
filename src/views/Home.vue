@@ -416,7 +416,7 @@ const removeRecord = (tag, index) => {
   --border: #e6ecff;
   --background: #f8fafc;
   --card: #ffffff;
-  --danger: #e53e3e;
+  --danger: #6d3ee535;
   --user-msg-bg: #f1f5f9; /* 用户消息背景（浅灰色） */
   --assistant-msg-bg: #ffffff; /* 助手消息背景 */
 }
