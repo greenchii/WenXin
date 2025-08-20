@@ -53,6 +53,8 @@ const submitInput = async () => {
 
     // 3. 调用接口
     const res = await uploadInfoService(formData)
+    console.log(res);
+    
 
     // 4. 保存返回结果到对话历史
     conversationHistory.value.push({
@@ -62,7 +64,7 @@ const submitInput = async () => {
     })
     conversationHistory.value.push({
       role: 'assistant',
-      content: res.data?.reply || '无回复',
+      content: res.data?.message || '无回复',
     })
 
     // 5. 清空输入框和文件
@@ -72,4 +74,10 @@ const submitInput = async () => {
     console.error('上传失败：', error)
   }
 }
+
+//未完善版
+const removeRecord = (id) => {
+  previewItems.value = previewItems.value.filter(item => item.id !== id)
+}
+
 </script>

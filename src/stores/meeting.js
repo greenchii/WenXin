@@ -1,8 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getInfoByCategoryService } from '@/api/user'
+import { getAllInfoService } from '../api/user'
 
-export const useMeetingStore = defineStore('meeting', () => {
+export const useMeetingStore = defineStore('meeting', async() => {
+  const res=await getAllInfoService()
+  console.log(res)
   const records = ref([
     {
       _id: '103',

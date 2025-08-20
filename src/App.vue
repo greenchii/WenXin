@@ -144,11 +144,10 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useUserStore } from '@/stores/user.js'
+import { useUserStore } from '@/stores/user.js' // 引入Pinia的userStore
 
 // 路由
 const router = useRouter()
-const route = useRoute()
 
 // 用户状态由 Pinia 管理
 const userStore = useUserStore()
@@ -164,20 +163,10 @@ const sidebarSections = ref([
   { title: '30天内', items: [] }
 ])
 
-const STORAGE_KEY = 'wenxin_v1'
-
-// 检查登录状态并更新用户信息
-const checkLoginStatus = () => {
-  // 这里用 Pinia store 的 user 判断是否登录
-  if (!userStore.user || !userStore.user.username) {
-    userStore.setUser({ username: '', nickname: '', avatar: '' })
-  }
-}
-
-// 读取问题（localStorage，后续可替换为后端 fetch）
+// 读取问题（暂时还是本地存储，以后也换Pinia再改）
 function loadQuestionsFromStorage() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem('wenxin_v1')
     if (!raw) return []
     const parsed = JSON.parse(raw)
     return (parsed.questions || []).slice()
@@ -229,7 +218,7 @@ function buildSectionsFromQuestions(questions) {
   return sections
 }
 
-// 刷新侧边栏（从存储读取并按时间排序分组）
+// 刷新侧边栏
 function refreshSidebar() {
   const qs = loadQuestionsFromStorage()
   qs.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -242,27 +231,11 @@ function openQuestion(id) {
   router.push({ path: `/question/${id}` })
 }
 
-// 新增：开启新对话
+// 新对话
 function startNewConversation() {
-  // 导航到首页并刷新组件状态
   router.push('/').then(() => {
-    // 触发全局事件通知Home组件重置对话
     window.dispatchEvent(new Event('new-conversation'))
   })
-}
-
-// 格式化时间显示（在侧边栏可用）
-function formatTime(iso) {
-  try {
-    const d = new Date(iso)
-    const now = new Date()
-    if (isSameDay(d, now)) {
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-    return d.toLocaleDateString()
-  } catch {
-    return ''
-  }
 }
 
 // 监听问题更新事件
@@ -272,17 +245,13 @@ function onQuestionsUpdated() {
 
 // 初始化
 onMounted(() => {
-  checkLoginStatus()
   const sidebarState = localStorage.getItem('sidebarExpanded')
   if (sidebarState) {
     try {
       isSidebarExpanded.value = JSON.parse(sidebarState)
     } catch (e) { isSidebarExpanded.value = false }
   }
-
-  // 初次加载侧边栏问题
   refreshSidebar()
-  // 监听跨窗口/组件更新
   window.addEventListener('questions-updated', onQuestionsUpdated)
 })
 
@@ -291,19 +260,11 @@ watch(isSidebarExpanded, (newVal) => {
   localStorage.setItem('sidebarExpanded', JSON.stringify(newVal))
 })
 
-// 路由变化时检查登录（保留原逻辑）
-watch(() => route.path, () => {
-  checkLoginStatus()
-})
+const isLoggedIn = computed(() => !!userStore.token)
 
-// 是否已登录
-const isLoggedIn = computed(() => !!userStore.user?.username)
-
-// 退出登录
 const handleLogout = () => {
   if (confirm('确定要退出登录吗？')) {
-    userStore.removeToken()
-    userStore.setUser({ username: '', nickname: '', avatar: '' })
+    userStore.logout() 
     router.push('/login')
   }
 }

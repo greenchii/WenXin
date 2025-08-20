@@ -72,7 +72,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { userRegisterService, userLoginService } from '@/api/user'
+import { userRegisterService } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 
 // 表单数据
@@ -121,18 +121,13 @@ const handleAuth = async () => {
 
   try {
     if (isLoginMode.value) {
-      // 登录逻辑
-      const response = await userLoginService({ 
+      // 调用 Pinia 的 login 方法（内部会存储 token）
+      await userStore.login({ 
         username: username.value, 
         password: password.value 
       })
-      
-      // 存储 token 和用户信息（Pinia + persist 会自动存储到 localStorage / sessionStorage）
-      userStore.setToken(response.data.access_token || response.data.token)
-      userStore.setUser({
-        username: username.value
-      })
-      
+
+      // 跳转首页
       router.push('/')
     } else {
       // 注册逻辑
@@ -155,6 +150,7 @@ const handleAuth = async () => {
   }
 }
 </script>
+
 
 <style scoped>
 .login-container {
