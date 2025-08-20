@@ -128,7 +128,7 @@ const submit = () => emit('submit')
   gap: 8px;
 }
 .dark-border-input {
-  border: 1px solid #333;
+  border: 1px solid #4c6ef5;
   padding: 8px;
   min-height: 80px;
   resize: vertical;

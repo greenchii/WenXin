@@ -127,16 +127,11 @@ const handleAuth = async () => {
         password: password.value 
       })
       
-      // 存储token和用户信息
+      // 存储 token 和用户信息（Pinia + persist 会自动存储到 localStorage / sessionStorage）
       userStore.setToken(response.data.access_token || response.data.token)
       userStore.setUser({
         username: username.value
       })
-      
-      // 同步保存到localStorage
-      localStorage.setItem('user', JSON.stringify({
-        username: username.value
-      }))
       
       router.push('/')
     } else {
@@ -283,4 +278,3 @@ input:focus {
   --border:#e6ecff;
 }
 </style>
-   
