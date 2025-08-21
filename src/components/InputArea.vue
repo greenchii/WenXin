@@ -25,6 +25,7 @@
             图片
             <input type="file" accept="image/*" @change="onFilesChange" hidden />
           </label>
+
           <label class="upload-option">
             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M15 9H3v6h12V9zm-1.5 4.5V15H6v-1.5h7.5zm4.5 0H18v1.5h-1.5V15H15v-1.5h3zm0-3V12H6V9.5h13.5z" fill="currentColor"/>
@@ -32,6 +33,7 @@
             文件
             <input type="file" @change="onFilesChange" hidden />
           </label>
+
           <label class="upload-option">
             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.42 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" fill="currentColor"/>
@@ -78,7 +80,6 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { defineEmits } from 'vue'
 
 const props = defineProps({
   inputText: String,
@@ -104,7 +105,7 @@ watch(localFiles, val => emit('update:files', val))
 watch(localAskType, val => emit('update:askType', val))
 
 // 上传文件
-const showUploadOptions = ref(false)
+const showUploadOptions = ref(false)//点击按钮出现附件类型选项
 const toggleUploadOptions = () => showUploadOptions.value = !showUploadOptions.value
 const onFilesChange = (e) => {
   const selected = Array.from(e.target.files)
@@ -118,7 +119,7 @@ const removeFile = (index) => {
 }
 
 // 提交
-const submit = () => emit('submit')
+const submit = () => emit('submit')//submit定义在Home.vue
 </script>
 
 <style scoped>

@@ -1,7 +1,6 @@
 <template>
   <div class="conversation-history">
     <div class="message" v-for="(msg, index) in conversationHistory" :key="index">
-      <!-- 消息头像和内容保持原逻辑 -->
       <div class="message-avatar" :class="{ 'user-avatar': msg.isUser, 'assistant-avatar': !msg.isUser }">
         <svg v-if="!msg.isUser" viewBox="0 0 24 24"><path d="..." fill="currentColor"/></svg>
         <svg v-if="msg.isUser" viewBox="0 0 24 24"><path d="..." fill="currentColor"/></svg>

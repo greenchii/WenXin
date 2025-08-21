@@ -29,8 +29,6 @@
 import ConversationHistory from './ConversationHistory.vue'
 import InputArea from './InputArea.vue'
 
-import { defineEmits } from 'vue'
-
 const props = defineProps({
   inputText: String,
   files: Array,

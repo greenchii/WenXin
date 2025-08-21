@@ -27,6 +27,7 @@
 import '@/style/Home.css'
 import { ref } from 'vue'
 import { uploadInfoService } from '@/api/user'
+import { useUserStore } from '@/stores/user'
 import AssistantPanel from '@/components/AssistantPanel.vue'
 import RightPanel from '@/components/RightPanel.vue'
 
@@ -37,6 +38,10 @@ const askType = ref('record')
 const conversationHistory = ref([])
 const selectedTag = ref(null)
 const previewItems = ref([])
+
+ // 判断用户是否登录
+const userStore = useUserStore()
+const isUser = !!userStore.token  // 有 token 就算已登录
 
 // 提交输入
 const submitInput = async () => {
@@ -59,11 +64,16 @@ const submitInput = async () => {
     // 4. 保存返回结果到对话历史
     conversationHistory.value.push({
       role: 'user',
+      isUser: isUser,              
+      type: askType.value,       
       content: inputText.value,
       files: [...files.value],
     })
+
     conversationHistory.value.push({
       role: 'assistant',
+      isUser: isUser,             
+      type: 'reply',             
       content: res.data?.message || '无回复',
     })
 
