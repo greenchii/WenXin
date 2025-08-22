@@ -14,11 +14,7 @@
       />
 
       <!-- 右侧列：信息分类 -->
-      <RightPanel
-        v-model:selectedTag="selectedTag"
-        :previewItems="previewItems"
-        @removeRecord="removeRecord"
-      />
+      <RightPanel/>
     </div>
   </div>
 </template>
@@ -36,8 +32,6 @@ const inputText = ref('')
 const files = ref([])
 const askType = ref('record')
 const conversationHistory = ref([])
-const selectedTag = ref(null)
-const previewItems = ref([])
 
  // 判断用户是否登录
 const userStore = useUserStore()
@@ -85,9 +79,5 @@ const submitInput = async () => {
   }
 }
 
-//未完善版
-const removeRecord = (id) => {
-  previewItems.value = previewItems.value.filter(item => item.id !== id)
-}
 
 </script>
