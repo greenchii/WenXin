@@ -1,0 +1,248 @@
+:root { 
+    --accent: #4c6ef5;
+    --muted: #98a0b3;
+    --border: #e6e9ef;
+    --card: #ffffff;
+    --user-bg: #d4d6dc; /* 用户气泡灰 */
+    --assistant-bg: #c7dff1; /* 问心助理淡蓝 */
+    --text: #222;
+    --bubble-radius: 12px;
+    --max-width: 760px;
+}
+
+/* 容器基础 - 强制居中设置 */
+.question-detail {
+    max-width: var(--max-width);
+    margin: 0 auto !important; /* 强制居中，优先级最高 */
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    color: var(--text);
+    box-sizing: border-box;
+    width: 100%; /* 确保容器占满可用宽度，辅助auto计算 */
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 15px;
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.back-btn:hover {
+    background-color: rgba(76, 110, 245, 0.06);
+}
+
+.icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* 对话容器 */
+.conversation-container {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    background-color: var(--card);
+    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* 每条消息行（包含头像 + 内容块） */
+.message-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+/* 角色控制：问心在左（默认），用户在右（反转） */
+.message-row.assistant {
+    flex-direction: row;
+}
+
+.message-row.user {
+    flex-direction: row-reverse;
+}
+
+/* 头像 */
+.avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+    box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+}
+
+/* 问心助手头像 */
+.avatar.assistant {
+    background-image: url('/favicon.png');
+    background-color: transparent;
+}
+
+/* 用户头像 */
+.avatar.user {
+    background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='4' fill='%23e6e9ef'/%3E%3Cg fill='%23111'%3E%3Ccircle cx='12' cy='8' r='3'/%3E%3Cpath d='M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6H4z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* 内容包装：名字 + 气泡 + 时间 */
+.message-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    max-width: calc(100% - 68px);
+}
+
+/* 当 user 行时，让块右对齐以保持气泡靠右 */
+.message-row.user .message-block {
+    align-items: flex-end;
+}
+
+/* 名称标签 */
+.name {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    opacity: 0.95;
+}
+
+/* 名称位置 */
+.name.assistant {
+    align-self: flex-start;
+    color: #0f6bd8;
+}
+
+.name.user {
+    align-self: flex-end;
+    color: #4c6ef5;
+}
+
+/* 气泡样式 */
+.bubble {
+    padding: 12px 14px;
+    border-radius: var(--bubble-radius);
+    box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-width: 100%;
+    background-color: transparent; 
+}
+
+/* 问心助手气泡 */
+.bubble.assistant {
+    background-color: var(--assistant-bg) !important;
+    color: var(--text);
+    border: 1px solid rgba(74, 137, 255, 0.06);
+    border-top-left-radius: 6px;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+
+/* 用户气泡 */
+.bubble.user {
+    background-color: var(--user-bg) !important;
+    color: var(--text);
+    border: 1px solid rgba(16,24,40,0.04);
+    border-top-right-radius: 6px;
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+/* 时间 */
+.time {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    align-self: center;
+}
+
+.message-row.user .time {
+    align-self: flex-end;
+}
+
+/* 空状态 - 确保居中 */
+.empty-state {
+    text-align: center;
+    padding: 50px 0;
+    color: var(--muted);
+    margin: 0 auto; /* 自身居中 */
+    max-width: 600px; /* 限制最大宽度 */
+}
+
+.new-conversation-btn {
+    margin-top: 12px;
+    padding: 8px 16px;
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* 追问区 */
+.follow-up {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    max-width: var(--max-width); /* 限制追问区宽度 */
+    margin: 0 auto; /* 追问区居中 */
+}
+
+.follow-up textarea {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    min-height: 84px;
+    resize: vertical;
+    font-size: 14px;
+}
+
+.send-btn {
+    padding: 8px 18px;
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.send-btn:hover {
+    filter: brightness(0.95);
+}
+
+/* 响应式优化 */
+@media (max-width: 640px) {
+    .question-detail {
+        padding: 12px;
+        max-width: 100% !important; /* 小屏时占满宽度 */
+    }
+    .avatar {
+        width: 40px;
+        height: 40px;
+    }
+    .bubble {
+        padding: 10px 12px;
+    }
+    .follow-up {
+        padding: 0 4px;
+    }
+}
