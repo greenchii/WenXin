@@ -89,7 +89,7 @@ const props = defineProps({
     type: String,
     required: true,
     validator: (value) => {
-      return ['财务', '会议', '生活'].includes(value)
+      return ['finance', 'meeting', 'life'].includes(value)
     }
   }
 })

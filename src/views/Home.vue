@@ -122,34 +122,10 @@ const submitInput = async () => {
     })
 
     if (askType.value === 'consult') {
-      const assistantReply = uploadRes.data?.message || '已收到您的问题，正在生成回复...'
-      conversationHistory.value.push({
-        role: 'assistant',
-        isUser: false,
-        type: 'reply',
-        content: assistantReply,
-        timestamp: dayjs().format()
+      //暂缺接口
+      emit('new-consult', {
+        question: inputText.value
       })
-
-      // 保存到历史记录
-      if (conversationId) {
-        historyStore.addMessage(conversationId, {
-          info_type: 'text',
-          title: '用户提问',
-          description: '用户的问题',
-          content: inputText.value,
-          created_at: dayjs().format(),
-          isUser: true
-        })
-        historyStore.addMessage(conversationId, {
-          info_type: 'text',
-          title: '问心回复',
-          description: '问心助手的回复',
-          content: assistantReply,
-          created_at: dayjs().format(),
-          isUser: false
-        })
-      }
     } else if (askType.value === 'record') {
       conversationHistory.value.push({
         role: 'assistant',

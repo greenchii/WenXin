@@ -102,7 +102,7 @@ import '@/style/Life.css'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLifeStore } from '@/stores/life'
-import RecordCalendar from '@/components/RecordCalendar.vue'
+import RecordCalendar from '@/components/second/RecordCalendar.vue'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()

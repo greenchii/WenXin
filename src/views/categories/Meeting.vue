@@ -102,7 +102,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useMeetingStore } from '@/stores/meeting'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import RecordCalendar from '@/components/RecordCalendar.vue'
+import RecordCalendar from '@/components/second/RecordCalendar.vue'
 
 // 路由
 const router = useRouter()
