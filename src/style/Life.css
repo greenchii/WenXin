@@ -53,7 +53,9 @@
 .content-cell { max-width:400px; }
 .content-text { white-space: nowrap; overflow:hidden; text-overflow: ellipsis; }
 
-.edit-btn, .delete-btn { background:none; border:none; cursor:pointer; padding:4px; margin-right:8px; }
+
+.actions-cell {display: flex; align-items: center; gap: 4px; }
+.edit-btn, .delete-btn { background:none; border:none; cursor:pointer; padding:4px; margin-right: 8px; display: inline-flex;}
 .edit-btn .icon { width:18px;height:18px;color: var(--primary); }
 .delete-btn .icon { width:18px;height:18px;color: var(--danger); }
 .edit-btn:hover .icon { color:#3a5bdb; }

@@ -104,6 +104,12 @@
   text-overflow: ellipsis;
 }
 
+.actions-cell {
+  display: flex; 
+  align-items: 
+  center; gap: 4px; 
+}
+
 /* 操作按钮 */
 .edit-btn,
 .delete-btn {
@@ -112,6 +118,7 @@
   cursor: pointer;
   padding: 4px;
   margin-right: 8px;
+  display: inline-flex;
   transition: color 0.2s;
 }
 
