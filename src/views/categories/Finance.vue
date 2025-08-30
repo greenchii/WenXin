@@ -1,187 +1,189 @@
 <template>
-  <div class="records-page">
-    <!-- 顶部标题栏 -->
-    <div class="page-header">
-      <h1>历史事项记录 -- 财务</h1>
-      <button class="back-btn" @click="goHome">
-        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M11.67 3.87L9.9 2.1 0 12l9.9 9.9 1.77-1.77L3.54 12l8.13-8.13z" fill="currentColor"/>
-        </svg>
-        返回首页
-      </button>
-    </div>
+  <div class="finance-page">
+    <div class="records-page">
+      <!-- 顶部标题栏 -->
+      <div class="page-header">
+        <h1>历史事项记录 -- 财务</h1>
+        <button class="back-btn" @click="goHome">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M11.67 3.87L9.9 2.1 0 12l9.9 9.9 1.77-1.77L3.54 12l8.13-8.13z" fill="currentColor"/>
+          </svg>
+          返回首页
+        </button>
+      </div>
 
-    <!-- 主体布局：上方卡片区域 + 下方表格区域 -->
-    <div class="content-container">
-      <!-- 上方卡片区域 -->
-      <div class="cards-container">
-        <!-- 左侧可视化事件展示卡片 -->
-        <div class="visual-card">
-          <div class="card-header">
-            <h2>可视化事件展示</h2>
+      <!-- 主体布局：上方卡片区域 + 下方表格区域 -->
+      <div class="content-container">
+        <!-- 上方卡片区域 -->
+        <div class="cards-container">
+          <!-- 左侧可视化事件展示卡片 -->
+          <div class="visual-card">
+            <div class="card-header">
+              <h2>可视化事件展示</h2>
+            </div>
+            <div class="card-body">
+              <button 
+                class="visual-btn" 
+                @click="goToCalendar"
+              >
+                <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
+                </svg>
+                盈亏日历
+              </button>
+              <button 
+                class="visual-btn" 
+                @click="goToRoute('/trend')"
+              >
+                <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2v4l2 2 1.41-1.41L13.41 6H19v12H5V6h5.59l-2.29 2.29L10 8V2h2zm0 14c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" fill="currentColor"/>
+                </svg>
+                收支趋势分析
+              </button>
+              <button 
+                class="visual-btn" 
+                @click="goToRoute('/cost')"
+              >
+                <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3-11h-2v2c0 .55-.45 1-1 1s-1-.45-1-1v-3H8c-.55 0-1-.45-1-1s.45-1 1-1h3V8c0-.55.45-1 1-1s1 .45 1 1v3h3c.55 0 1 .45 1 1s-.45 1-1 1z" fill="currentColor"/>
+                </svg>
+                成本占比看板
+              </button>
+              <button 
+                class="visual-btn" 
+                @click="goToRoute('/cashflow')"
+              >
+                <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4 9h-3v3c0 .55-.45 1-1 1s-1-.45-1-1v-3H8c-.55 0-1-.45-1-1s.45-1 1-1h3V8c0-.55.45-1 1-1s1 .45 1 1v3h3c.55 0 1 .45 1 1s-.45 1-1 1z" fill="currentColor"/>
+                </svg>
+                现金流预测
+              </button>
+            </div>
           </div>
-          <div class="card-body">
-            <button 
-              class="visual-btn" 
-              @click="goToCalendar"
-            >
-              <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
-              </svg>
-              盈亏日历
-            </button>
-            <button 
-              class="visual-btn" 
-              @click="goToRoute('/trend')"
-            >
-              <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 2v4l2 2 1.41-1.41L13.41 6H19v12H5V6h5.59l-2.29 2.29L10 8V2h2zm0 14c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" fill="currentColor"/>
-              </svg>
-              收支趋势分析
-            </button>
-            <button 
-              class="visual-btn" 
-              @click="goToRoute('/cost')"
-            >
-              <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3-11h-2v2c0 .55-.45 1-1 1s-1-.45-1-1v-3H8c-.55 0-1-.45-1-1s.45-1 1-1h3V8c0-.55.45-1 1-1s1 .45 1 1v3h3c.55 0 1 .45 1 1s-.45 1-1 1z" fill="currentColor"/>
-              </svg>
-              成本占比看板
-            </button>
-            <button 
-              class="visual-btn" 
-              @click="goToRoute('/cashflow')"
-            >
-              <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4 9h-3v3c0 .55-.45 1-1 1s-1-.45-1-1v-3H8c-.55 0-1-.45-1-1s.45-1 1-1h3V8c0-.55.45-1 1-1s1 .45 1 1v3h3c.55 0 1 .45 1 1s-.45 1-1 1z" fill="currentColor"/>
-              </svg>
-              现金流预测
-            </button>
-          </div>
-        </div>
 
-        <!-- 右侧今日事件 TODO 卡片 -->
-        <div class="todo-card">
-          <div class="card-header">
-            <h2>今日事件</h2>
-          </div>
-          <div class="card-body todo-list">
-            <div 
-              class="todo-item" 
-              v-for="(item, idx) in todoItems" 
-              :key="idx" 
-              @click="handleTodoClick(item, idx)"
-              :class="{ 'done': item.done }"
-            >
-              <input type="checkbox" class="todo-checkbox" :checked="item.done">
-              <span>{{ item.text }}</span>
+          <!-- 右侧今日事件 TODO 卡片 -->
+          <div class="todo-card">
+            <div class="card-header">
+              <h2>今日事件</h2>
+            </div>
+            <div class="card-body todo-list">
+              <div 
+                class="todo-item" 
+                v-for="(item, idx) in todoItems" 
+                :key="idx" 
+                @click="handleTodoClick(item, idx)"
+                :class="{ 'done': item.done }"
+              >
+                <input type="checkbox" class="todo-checkbox" :checked="item.done">
+                <span>{{ item.text }}</span>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- 下方表格区域 - 周记事件 -->
+        <div class="table-container">
+          <div class="table-header">
+            <h2>周记事件</h2>
+            <p class="week-info">最近一周: {{ weekRange }}</p>
+          </div>
+          <div class="table-content">
+            <table class="records-table">
+              <thead>
+                <tr>
+                  <th>上传时间</th>
+                  <th>主题</th>
+                  <th>详细内容</th>
+                  <th>金额</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr 
+                  v-for="(record, index) in weeklyRecords" 
+                  :key="record.id ?? record._id ?? index"
+                >
+                  <td>{{ record.date || formatDate(record.timestamp) }}</td>
+                  <td>{{ record.title }}</td>
+                  <td class="content-cell">
+                    <div class="content-text">{{ record.content ?? record.description }}</div>
+                  </td>
+                  <td :class="record.amount >= 0 ? 'income-amount' : 'expense-amount'">
+                    {{ record.amount >= 0 ? '+' : '' }}{{ record.amount.toFixed(2) }}
+                  </td>
+                  <td class="operation-cell">
+                    <button class="edit-btn" @click="openEditDialog(record)">
+                      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
+                      </svg>
+                    </button>
+                    <button class="delete-btn" @click="deleteRecord(index)">
+                      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="weeklyRecords.length === 0">
+                  <td colspan="5" class="empty-state">
+                    最近一周暂无财务记录
+                    <button class="add-first-btn" @click="goToAddRecord">
+                      添加记录
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
-      <!-- 下方表格区域 - 周记事件 -->
-      <div class="table-container">
-        <div class="table-header">
-          <h2>周记事件</h2>
-          <p class="week-info">最近一周: {{ weekRange }}</p>
-        </div>
-        <div class="table-content">
-          <table class="records-table">
-            <thead>
-              <tr>
-                <th>上传时间</th>
-                <th>主题</th>
-                <th>详细内容</th>
-                <th>金额</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr 
-                v-for="(record, index) in weeklyRecords" 
-                :key="record.id ?? record._id ?? index"
-              >
-                <td>{{ record.date || formatDate(record.timestamp) }}</td>
-                <td>{{ record.title }}</td>
-                <td class="content-cell">
-                  <div class="content-text">{{ record.content ?? record.description }}</div>
-                </td>
-                <td :class="record.amount >= 0 ? 'income-amount' : 'expense-amount'">
-                  {{ record.amount >= 0 ? '+' : '' }}{{ record.amount.toFixed(2) }}
-                </td>
-                <td class="operation-cell">
-                  <button class="edit-btn" @click="openEditDialog(record)">
-                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
-                    </svg>
-                  </button>
-                  <button class="delete-btn" @click="deleteRecord(index)">
-                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/>
-                    </svg>
-                  </button>
-                </td>
-              </tr>
-              <tr v-if="weeklyRecords.length === 0">
-                <td colspan="5" class="empty-state">
-                  最近一周暂无财务记录
-                  <button class="add-first-btn" @click="goToAddRecord">
-                    添加记录
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <!-- 编辑弹窗 -->
+      <el-dialog 
+        v-model="isEditDialogVisible" 
+        title="编辑财务记录" 
+        width="500px"
+      >
+        <el-form :model="editForm" label-width="80px">
+          <el-form-item label="上传时间">
+            <el-date-picker
+              v-model="editForm.timestamp"
+              type="date"
+              value-format="YYYY-MM-DD"
+              placeholder="选择日期"
+              style="width: 100%;"
+            />
+          </el-form-item>
+          <el-form-item label="主题">
+            <el-input v-model="editForm.title" />
+          </el-form-item>
+          <el-form-item label="金额">
+            <el-input 
+              v-model="editForm.amount" 
+              type="number" 
+              placeholder="收入为正，支出为负"
+            />
+          </el-form-item>
+          <el-form-item label="详细内容">
+            <el-input 
+              type="textarea" 
+              v-model="editForm.content" 
+              rows="4" 
+            />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="isEditDialogVisible = false">取消</el-button>
+          <el-button 
+            type="primary" 
+            @click="submitEdit"
+            style="background-color: rgba(76, 110, 245, 0.1); color: #4c6ef5; border: none;"
+          >
+            提交
+          </el-button>
+        </template>
+      </el-dialog>
     </div>
-
-    <!-- 编辑弹窗 -->
-    <el-dialog 
-      v-model="isEditDialogVisible" 
-      title="编辑财务记录" 
-      width="500px"
-    >
-      <el-form :model="editForm" label-width="80px">
-        <el-form-item label="上传时间">
-          <el-date-picker
-            v-model="editForm.timestamp"
-            type="date"
-            value-format="YYYY-MM-DD"
-            placeholder="选择日期"
-            style="width: 100%;"
-          />
-        </el-form-item>
-        <el-form-item label="主题">
-          <el-input v-model="editForm.title" />
-        </el-form-item>
-        <el-form-item label="金额">
-          <el-input 
-            v-model="editForm.amount" 
-            type="number" 
-            placeholder="收入为正，支出为负"
-          />
-        </el-form-item>
-        <el-form-item label="详细内容">
-          <el-input 
-            type="textarea" 
-            v-model="editForm.content" 
-            rows="4" 
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="isEditDialogVisible = false">取消</el-button>
-        <el-button 
-          type="primary" 
-          @click="submitEdit"
-          style="background-color: rgba(76, 110, 245, 0.1); color: #4c6ef5; border: none;"
-        >
-          提交
-        </el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -248,9 +250,6 @@ const weeklyRecords = computed(() => {
   
   return financeRecords.value
     .filter(record => {
-      // 只处理财务类别记录
-      if (record.category !== '财务') return false;
-      
       // 转换记录日期
       const recordDate = record.date ? new Date(record.date) : new Date(record.timestamp);
       // 检查是否在最近一周范围内
@@ -329,18 +328,11 @@ const goToAddRecord = () => {
   router.push('/finance/add')
 }
 
-onMounted(async () => {
-  try {
-    // 加载当前月份数据
-    const now = new Date()
-    await financeStore.loadRecordsByMonth(now.getFullYear(), now.getMonth())
-  } catch (error) {
-    console.error('加载财务记录失败:', error)
-  }
+onMounted(() => {
+  financeStore.fetchRecords()
 })
 </script>
 
-<style>
-@import '@/style/Finance.css';
+<style scoped src="@/style/Finance.css">
 </style>
 

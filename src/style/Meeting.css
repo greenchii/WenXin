@@ -1,26 +1,26 @@
-/* 与财务页面样式保持一致，仅修改强调色为绿色 */
+/* 总色规定 */
 .meeting-page {
   --primary: #4c6ef5;
   --primary-light: #eef2ff;
   --light-gray: #f1f5f9;
   --text: #0f172a;
   --text-light: #64748b;
-  --accent: #10b981; /* 会议页面使用绿色作为强调色 */
+  --accent: #4c6ef5; /* 会议页面使用绿色作为强调色 */
   --border: #e6ecff;
   --background: #f8fafc;
   --card: #ffffff;
   --danger: #e53e3e;
 }
 
+/* 大盒子 */
 .records-page {
   padding: 30px;
   min-height: calc(100vh - 44px);
-  box-sizing: border-box;
-  background-color: var(--background);
-  overflow: auto;
+  background: var(--background);
+  overflow:auto;
 }
 
-/* 页面头部 */
+/* 顶部 */
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -28,48 +28,31 @@
   margin-bottom: 30px;
 }
 
-.page-header h1 {
-  font-size: 24px;
-  color: var(--text);
-  margin: 0;
-}
-
 .back-btn {
   display: flex;
   align-items: center;
   gap: 8px;
   background: var(--light-gray);
-  color: var(--text);
   border: 1px solid var(--border);
   padding: 8px 16px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.2s;
 }
 
-.back-btn:hover {
-  background-color: #e2e8f0;
+.back-btn:hover {background-color: #e2e8f0;}
+.back-btn .icon {width: 18px;height: 18px;}
+
+/* 日历 */
+.calendar-section{
+  margin-bottom: 30px;
 }
 
-.back-btn .icon {
-  width: 18px;
-  height: 18px;
-}
-
-/* 日历区域 */
-.calendar-section {
-  margin-bottom: 40px;
-}
-
-/* 表格容器 */
+/* 表格 */
 .records-table-container {
   background-color: var(--card);
   border-radius: 12px;
   box-shadow: 0 6px 18px rgba(12, 34, 88, 0.06);
-  overflow: visible;
-  max-height: 500px; /* 可根据需要调整高度 */
-  overflow-y: auto;
 }
 
 .records-table {
@@ -81,17 +64,23 @@
 .records-table th,
 .records-table td {
   padding: 15px 20px;
-  text-align: left;
   border-bottom: 1px solid var(--border);
 }
 
 .records-table th {
+  text-align: center;
   background-color: var(--light-gray);
   font-weight: 600;
   color: var(--text);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+}
+
+.records-table td {
+  text-align: center;
+  color: var(--text);
+}
+
+.records-table td:last-child {
+  text-align: center;
 }
 
 .content-cell {
@@ -106,8 +95,9 @@
 
 .actions-cell {
   display: flex; 
-  align-items: 
-  center; gap: 4px; 
+  justify-content: center;
+  align-items: center;
+  gap: 4px; 
 }
 
 /* 操作按钮 */
@@ -117,7 +107,6 @@
   border: none;
   cursor: pointer;
   padding: 4px;
-  margin-right: 8px;
   display: inline-flex;
   transition: color 0.2s;
 }
@@ -135,7 +124,7 @@
 }
 
 .edit-btn:hover .icon {
-  color: #059669;
+  color: #3a5bdb;
 }
 
 .delete-btn:hover .icon {

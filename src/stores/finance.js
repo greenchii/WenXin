@@ -2,70 +2,134 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getInfoByCategoryService } from '@/api/user'
 
-// 辅助函数：数字补零
-const pad2 = (n) => String(n).padStart(2, '0')
-
 export const useFinanceStore = defineStore('finance', () => {
-  const records = ref([])
-
-  // 生成模拟财务数据
-  const mockDetailedFinanceData = (year, month) => {
-    const first = new Date(year, month, 1)
-    const days = new Date(year, month + 1, 0).getDate()
-    const list = []
-    const incomeTypes = ['工资', '奖金', '投资收益', '兼职', '退款']
-    const expenseTypes = ['餐饮', '购物', '交通', '房租', '水电', '娱乐', '医疗']
-    
-    for (let i = 1; i <= days; i++) {
-      const date = `${year}-${pad2(month + 1)}-${pad2(i)}`
-      if (Math.random() < 0.7) {
-        const recordCount = Math.floor(Math.random() * 3) + 1 // 1-3条记录
-        for (let j = 0; j < recordCount; j++) {
-          // 随机时间点
-          const hours = Math.floor(Math.random() * 24)
-          const minutes = Math.floor(Math.random() * 60)
-          const seconds = Math.floor(Math.random() * 60)
-          
-          const isIncome = Math.random() > 0.3
-          const amount = Number((Math.random() * (isIncome ? 5000 : 2000) + (isIncome ? 1000 : 50)).toFixed(2))
-          
-          list.push({
-            id: `${date}-${j}`,
-            date,
-            type: isIncome ? 'income' : 'expense',
-            amount: isIncome ? amount : -amount,
-            title: isIncome ? incomeTypes[Math.floor(Math.random() * incomeTypes.length)] : expenseTypes[Math.floor(Math.random() * expenseTypes.length)],
-            description: isIncome ? `月度${incomeTypes[Math.floor(Math.random() * incomeTypes.length)]}` : `日常${expenseTypes[Math.floor(Math.random() * expenseTypes.length)]}`,
-            timestamp: new Date(`${date}T${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`).getTime(),
-            category: '财务' // 统一添加财务类别，与原有数据兼容
-          })
-        }
-      }
-    }
-    return list
+  const records = ref([
+  {
+    id: '2025-07-03-0',
+    date: '2025-07-03',
+    type: 'income',
+    amount: 3500.50,
+    title: '工资',
+    description: '月度工资',
+    timestamp: new Date('2025-07-03T09:30:00').getTime(),
+    category: '财务'
+  },
+  {
+    id: '2025-07-15-1',
+    date: '2025-07-15',
+    type: 'expense',
+    amount: -120.75,
+    title: '餐饮',
+    description: '日常餐饮',
+    timestamp: new Date('2025-07-15T12:15:00').getTime(),
+    category: '财务'
+  },
+  {
+    id: '2025-08-01-2',
+    date: '2025-08-01',
+    type: 'income',
+    amount: 4200.00,
+    title: '奖金',
+    description: '月度奖金',
+    timestamp: new Date('2025-08-01T10:45:00').getTime(),
+    category: '财务'
+  },
+  {
+    id: '2025-08-09-3',
+    date: '2025-08-09',
+    type: 'expense',
+    amount: -320.50,
+    title: '交通',
+    description: '日常交通',
+    timestamp: new Date('2025-08-09T08:20:00').getTime(),
+    category: '财务'
+  },
+  {
+    id: '2025-08-24-4',
+    date: '2025-08-24',
+    type: 'expense',
+    amount: -1500.00,
+    title: '房租',
+    description: '日常房租',
+    timestamp: new Date('2025-08-24T09:00:00').getTime(),
+    category: '财务'
+  },
+  {
+    id: '2025-09-02-5',
+    date: '2025-09-02',
+    type: 'income',
+    amount: 3000.00,
+    title: '投资收益',
+    description: '月度投资收益',
+    timestamp: new Date('2025-09-02T14:30:00').getTime(),
+    category: '财务'
+  },
+  {
+    id: '2025-09-10-6',
+    date: '2025-09-10',
+    type: 'expense',
+    amount: -200.00,
+    title: '娱乐',
+    description: '日常娱乐',
+    timestamp: new Date('2025-09-10T18:45:00').getTime(),
+    category: '财务'
+  },
+  {
+    id: '2025-09-15-7',
+    date: '2025-09-15',
+    type: 'income',
+    amount: 500.00,
+    title: '兼职',
+    description: '月度兼职',
+    timestamp: new Date('2025-09-15T16:10:00').getTime(),
+    category: '财务'
+  },
+  {
+    id: '2025-09-20-8',
+    date: '2025-09-20',
+    type: 'expense',
+    amount: -90.25,
+    title: '购物',
+    description: '日常购物',
+    timestamp: new Date('2025-09-20T11:50:00').getTime(),
+    category: '财务'
+  },
+  {
+    id: '2025-09-28-9',
+    date: '2025-09-28',
+    type: 'income',
+    amount: 600.00,
+    title: '退款',
+    description: '月度退款',
+    timestamp: new Date('2025-09-28T13:25:00').getTime(),
+    category: '财务'
   }
+])
+  const pad2 = (n) => String(n).padStart(2, '0')
 
-  // 初始化指定月份的模拟数据
-  const initMockData = (year, month) => {
-    records.value = mockDetailedFinanceData(year, month)
-  }
-
-  // 加载指定月份的数据
   const loadRecordsByMonth = (year, month) => {
-    // 实际项目中这里可以从API加载数据，这里先用模拟数据
-    records.value = mockDetailedFinanceData(year, month)
+    const monthStr = pad2(month + 1)
+    // 筛选现有 records 中「属于该年月」的记录（date 以 "YYYY-MM" 开头）
+    const filteredRecords = records.value.filter(record => 
+      record.date && record.date.startsWith(`${year}-${monthStr}`)
+    )
+    // 如果没有对应年月的记录，初始化模拟数据
+    if (filteredRecords.length === 0) {
+      console.log('初始化模拟数据')
+    }
   }
 
+  //规格化后端得到数据
   const normalizeList = (data) => {
     return data.map(item => ({
       _id: item.id ?? item._id ?? String(Math.random()),
       title: item.title ?? item.description ?? '',
-      category: item.category ?? '财务',
+      //category: item.category ?? '财务',
       content: item.content ?? item.description ?? '',
       timestamp: item.created_at ?? item.timestamp ?? new Date().toISOString(),
       // 保留财务特有字段
       date: item.date ?? '',
-      type: item.type ?? 'expense',
+      //type: item.type ?? 'expense',
       amount: item.amount ?? 0
     }))
   }
@@ -82,9 +146,6 @@ export const useFinanceStore = defineStore('finance', () => {
     } catch (error) {
       console.error('获取财务数据失败:', error)
       // 失败时使用模拟数据
-      const now = new Date()
-      records.value = mockDetailedFinanceData(now.getFullYear(), now.getMonth())
-      throw error
     }
   }
 
@@ -120,9 +181,7 @@ export const useFinanceStore = defineStore('finance', () => {
     addRecord,
     editRecord,
     deleteRecord,
-    initMockData,
-    loadRecordsByMonth,
-    mockDetailedFinanceData
+    loadRecordsByMonth
   }
 }, {
   persist: true

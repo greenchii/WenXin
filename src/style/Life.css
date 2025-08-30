@@ -1,3 +1,4 @@
+/* 总色规定 */
 .life-page  {
   --primary: #4c6ef5;
   --primary-light: #eef2ff;
@@ -11,18 +12,32 @@
   --danger: #e53e3e;
 }
 
+/* 大盒子 */
 .records-page {
+  display: flex;
+  flex-direction: column;
   padding: 30px;
   min-height: calc(100vh - 44px);
   background: var(--background);
-  overflow:auto;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  margin: 0 auto;
 }
 
+
+/* 顶部 */
 .page-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: 30px;
+}
+
+.page-header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
 }
 
 .back-btn {
@@ -30,43 +45,145 @@
   align-items: center;
   gap: 8px;
   background: var(--light-gray);
-  border:1px solid var(--border);
-  border-radius:8px;
+  border: 1px solid var(--border);
   padding: 8px 16px;
-  cursor:pointer;
-  font-size:14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
 }
-.back-btn:hover { background:#e2e8f0 }
-.back-btn .icon { width:18px;height:18px }
 
+.back-btn:hover {background-color: #e2e8f0;}
+.back-btn .icon {width: 18px;height: 18px;}
+
+/* 日历 */
+.calendar-section{
+  margin-bottom: 30px;
+  border: 1px solid #e5e7eb; 
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* 表格 */
 .records-table-container {
-  background: var(--card);
+  background-color: var(--card);
   border-radius: 12px;
-  box-shadow:0 6px 18px rgba(12,34,88,0.06);
-  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(12, 34, 88, 0.06);
 }
 
-.records-table { width:100%; border-collapse: collapse; min-width:600px; }
-.records-table th, .records-table td { padding:15px 20px; text-align:left; border-bottom:1px solid var(--border); }
-.records-table th { background: var(--light-gray); font-weight:600; color:var(--text); }
+.records-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
 
-.content-cell { max-width:400px; }
-.content-text { white-space: nowrap; overflow:hidden; text-overflow: ellipsis; }
+.records-table th,
+.records-table td {
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border);
+}
 
+.records-table th {
+  text-align: center;
+  background-color: var(--light-gray);
+  font-weight: 600;
+  color: var(--text);
+}
 
-.actions-cell {display: flex; align-items: center; gap: 4px; }
-.edit-btn, .delete-btn { background:none; border:none; cursor:pointer; padding:4px; margin-right: 8px; display: inline-flex;}
-.edit-btn .icon { width:18px;height:18px;color: var(--primary); }
-.delete-btn .icon { width:18px;height:18px;color: var(--danger); }
-.edit-btn:hover .icon { color:#3a5bdb; }
-.delete-btn:hover .icon { color:#c53030; }
+.records-table td {
+  text-align: center;
+  color: var(--text);
+}
 
-.empty-state { text-align:center; padding:60px 20px; color:var(--text-light); }
-.add-first-btn { margin-top:15px; background: var(--primary); color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; }
-.add-first-btn:hover { background:#3a5bdb; }
+.records-table td:last-child {
+  text-align: center;
+}
 
-@media (max-width:768px){
-  .records-page { padding:15px; }
-  .page-header { flex-direction:column; align-items:flex-start; gap:15px; }
-  .records-table-container { overflow-x:auto; }
+.content-cell {
+  max-width: 400px;
+}
+
+.content-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actions-cell {
+  display: flex; 
+  justify-content: center;
+  align-items: center;
+  gap: 4px; 
+}
+
+/* 操作按钮 */
+.edit-btn,
+.delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  transition: color 0.2s;
+}
+
+.edit-btn .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+}
+
+.delete-btn .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--danger);
+}
+
+.edit-btn:hover .icon {
+  color: #3a5bdb;
+}
+
+.delete-btn:hover .icon {
+  color: #c53030;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-light);
+}
+
+.add-first-btn {
+  margin-top: 15px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.add-first-btn:hover {
+  background-color: #059669;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .records-page {
+    padding: 15px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .records-table-container {
+    overflow-x: auto;
+  }
+}
+:deep(.el-button) {
+  border-radius: 8px;
 }

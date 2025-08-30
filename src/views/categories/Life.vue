@@ -98,7 +98,6 @@
 </template>
 
 <script setup>
-import '@/style/Life.css'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLifeStore } from '@/stores/life'
@@ -170,3 +169,5 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped src="@/style/Life.css"></style>

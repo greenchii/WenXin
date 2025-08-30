@@ -1,16 +1,16 @@
 <template>
   <div class="meeting-page">
-    <div class="page-header">
-      <h1>历史事项记录 -- 会议</h1>
-      <button class="back-btn" @click="goHome">
-        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M11.67 3.87L9.9 2.1 0 12l9.9 9.9 1.77-1.77L3.54 12l8.13-8.13z" fill="currentColor"/>
-        </svg>
-        返回首页
-      </button>
-    </div>
+    <div class="records-page">
+      <div class="page-header">
+        <h1>历史事项记录 -- 会议</h1>
+        <button class="back-btn" @click="goHome">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M11.67 3.87L9.9 2.1 0 12l9.9 9.9 1.77-1.77L3.54 12l8.13-8.13z" fill="currentColor"/>
+          </svg>
+          返回首页
+        </button>
+      </div>
 
-    <!-- 日历 -->
     <div class="calendar-section">
       <RecordCalendar 
         :records="meetingRecords" 
@@ -20,7 +20,6 @@
       />
     </div>
 
-    <!-- 表格 -->
     <div class="records-table-container">
       <table class="records-table">
         <thead>
@@ -94,10 +93,10 @@
       </template>
     </el-dialog>
   </div>
+</div>
 </template>
 
 <script setup>
-import '@/style/Meeting.css'
 import { computed, onMounted, ref } from 'vue'
 import { useMeetingStore } from '@/stores/meeting'
 import { useRouter } from 'vue-router'
@@ -180,4 +179,4 @@ onMounted(() => {
 })
 </script>
 
-
+<style scoped src="@/style/Meeting.css"></style>

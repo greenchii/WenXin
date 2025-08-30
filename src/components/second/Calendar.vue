@@ -1,17 +1,17 @@
 <template>
-  <div class="plc-page">
+<div class="plc-page">
+  <div class="page-root">
     <!-- 顶部标题栏（保留在页面头部） -->
-    <div class="page-root">
-      <div class="page-header">
-        <h1>历史事项记录 -- 财务</h1>
-        <button class="back-btn" @click="goLast">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M11.67 3.87L9.9 2.1 0 12l9.9 9.9 1.77-1.77L3.54 12l8.13-8.13z" fill="currentColor"/>
-          </svg>
-          返回上一页
-        </button>
-      </div>
-
+    <div class="page-header">
+      <h1>历史事项记录 -- 财务</h1>
+      <button class="back-btn" @click="goLast">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M11.67 3.87L9.9 2.1 0 12l9.9 9.9 1.77-1.77L3.54 12l8.13-8.13z" fill="currentColor"/>
+        </svg>
+        返回上页
+      </button>
+  </div>
+  
       <!-- 主可滚动区域：把日历 + 列表放在这里，滚动只发生在此 -->
       <div class="page-body">
         <!-- 月份切换 + 摘要板块 -->
@@ -210,9 +210,9 @@
             </el-button>
           </template>
         </el-dialog>
-      </div> <!-- /.page-body -->
-    </div> <!-- /.page-root -->
-  </div> <!-- /.plc-page -->
+      </div> 
+    </div> 
+  </div> 
 </template>
 
 <script setup>
@@ -447,7 +447,7 @@ const deleteRecord = (index) => {
 
 // 初始化数据
 onMounted(() => {
-  financeStore.initMockData(currentYear.value, currentMonth.value)
+  financeStore.fetchRecords()
 })
 </script>
 
@@ -464,10 +464,8 @@ onMounted(() => {
   --loss-border: #10b981;
   --neutral-bg: #f1f5f9;
   --border: #e2e8f0;
+  --background: #f8fafc;
 
-  background: var(--bg);
-  height: 100%;
-  padding: 24px;
   box-sizing: border-box;
   color: var(--text);
   display: flex;
@@ -477,12 +475,12 @@ onMounted(() => {
 .page-root {
   display: flex;
   flex-direction: column;
+  padding: 30px;
+  min-height: calc(100vh - 44px);
   flex: 1;
-  min-height: 0;
+  background: var(--background);
   width: 100%;
-  max-width: 1400px;
   margin: 0 auto;
-  gap: 16px;
 }
 
 .page-body {
@@ -497,8 +495,17 @@ onMounted(() => {
 /* ----------- 头部 ----------- */
 .page-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.page-header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
 }
 
 .back-btn {
@@ -552,7 +559,7 @@ onMounted(() => {
 
 /* ----------- 日历样式（重点修改） ----------- */
 .calendar {
-  margin-top: 12px;
+  margin-top: 0px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -565,7 +572,7 @@ onMounted(() => {
 
 /* 日历单元格 - 增加高度以容纳多条记录 */
 .cell { 
-  min-height: 140px; /* 增加单元格高度，容纳多条记录 */
+  min-height: 90px; /* 增加单元格高度，容纳多条记录 */
   background:white; 
   border:1px solid var(--border); 
   border-radius:10px; 
@@ -574,7 +581,7 @@ onMounted(() => {
   flex-direction:column; 
   align-items:center; 
   justify-content:flex-start; /* 顶部对齐，方便显示多条记录 */
-  gap:6px; 
+  gap:10px; 
   cursor:pointer; 
   transition: box-shadow 0.2s ease, transform 0.08s ease;
   position: relative;
@@ -587,7 +594,6 @@ onMounted(() => {
   margin:0; 
   padding-bottom: 4px;
   border-bottom: 1px dashed var(--border);
-  width: 100%;
   text-align: center;
 }
 
