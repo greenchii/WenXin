@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getInfoByCategoryService } from '@/api/user'
+import { getInfoByCategoryService } from '@/api/conversation'
 
 export const useMeetingStore = defineStore('meeting', () => {
   // 默认示例数据（保证组件在无网络或接口返回空时仍有显示）

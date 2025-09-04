@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getInfoByCategoryService } from '@/api/user'
+import { getInfoByCategoryService } from '@/api/conversation'
 
 export const useFinanceStore = defineStore('finance', () => {
   const records = ref([
@@ -137,7 +137,6 @@ export const useFinanceStore = defineStore('finance', () => {
   const fetchRecords = async () => {
     try {
       const res = await getInfoByCategoryService('finance')
-      console.log(res);
       
       if (res.data.length > 0) {
         records.value = normalizeList(res.data)

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getInfoByCategoryService } from '@/api/user'
+import { getInfoByCategoryService } from '@/api/conversation'
 
 export const useLifeStore = defineStore('life', () => {
   // 默认示例数据

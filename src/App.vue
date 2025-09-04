@@ -192,7 +192,7 @@
 
       <!-- 主内容区域 -->
       <main class="main-content">
-        <router-view @new-consult="handleNewConsult" />
+        <router-view/>
 
         <footer class="footer">© 问心 · 本地演示版</footer>
       </main>
@@ -251,69 +251,7 @@ watch(isSidebarExpanded, (newVal) => {
   localStorage.setItem('sidebarExpanded', JSON.stringify(newVal))
 })
 
-// 处理新的决策咨询
-const handleNewConsult = async (question) => {
-  try {
-    // 调用API创建新对话
-    const response = await createConversationService()
-    const { conversation_id, title, created_at } = response.data
-    
-    // 将新对话添加到本地存储
-    const convId = historyStore.addConversation({
-      id: conversation_id,
-      title: title || question.substring(0, 30) + (question.length > 30 ? '...' : ''),
-      created_at,
-      updated_at: created_at,
-      info_count: 1,
-      info_items: [{
-        id: 1,
-        info_type: 'text',
-        title: '用户提问',
-        description: '用户的新问题',
-        content: question,
-        created_at
-      }]
-    })
-    
-    // 模拟AI回复
-    setTimeout(() => {
-      historyStore.addMessage(
-        convId, 
-        {
-          info_type: 'text',
-          title: '问心回复',
-          description: '问心助手的回复',
-          content: "这是问心助手的回复。在实际应用中，这里会显示大模型生成的智能回答。",
-        }
-      )
-    }, 1000)
-  } catch (error) {
-    console.error('Failed to create conversation:', error)
-    // 失败时仍在本地创建对话
-    const convId = historyStore.addConversation({
-      title: question.substring(0, 30) + (question.length > 30 ? '...' : ''),
-      info_count: 1,
-      info_items: [{
-        info_type: 'text',
-        title: '用户提问',
-        description: '用户的新问题',
-        content: question,
-      }]
-    })
-    
-    setTimeout(() => {
-      historyStore.addMessage(
-        convId, 
-        {
-          info_type: 'text',
-          title: '问心回复',
-          description: '问心助手的回复',
-          content: "这是问心助手的回复。在实际应用中，这里会显示大模型生成的智能回答。",
-        }
-      )
-    }, 1000)
-  }
-}
+
 
 // 跳转到问题详情
 function openQuestion(id) {

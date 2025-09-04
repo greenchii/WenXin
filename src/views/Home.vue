@@ -28,6 +28,7 @@
 import '@/style/Home.css'
 import { ref } from 'vue'
 import dayjs from 'dayjs'
+import { sendMessageService } from '@/api/conversation'
 import { useUserStore } from '@/stores/user'
 import { useHistoryStore } from '@/stores/history'
 import AssistantPanel from '@/components/AssistantPanel.vue'
@@ -37,7 +38,7 @@ import {
   uploadInfoService,
   uploadMixedInfoService,
   getInfoDetailService
-} from '@/api/user'
+} from '@/api/conversation'
 
 import { createConversationService } from '@/api/conversation'
 
@@ -64,8 +65,6 @@ const avatarConfig = ref({
   }
 })
 
-const emit = defineEmits(['new-consult'])
-
 // 提交输入
 const submitInput = async () => {
   if (!isUser) {
@@ -79,54 +78,41 @@ const submitInput = async () => {
     return
   }
 
-  // 如果内容和文件都为空，则不提交
+  // 内容和文件都为空则不提交
   if (!inputText.value.trim() && files.value.length === 0) return
 
   try {
-    let conversationId = null
-    const res = await createConversationService()
-    console.log('创建对话返回:', res)
-    conversationId = res.data.conversation_id
+    // 1. 创建对话（两种类型共用）
+    const convRes = await createConversationService()
+    const { conversation_id, created_at } = convRes.data
 
-    // 创建 FormData
-    const formData = new FormData()
-    if (conversationId) formData.append('conversation_id', conversationId)
-    if (inputText.value.trim()) formData.append('text', inputText.value.trim())
-    if (files.value.length > 0) formData.append('file', files.value[0])
+    // 2. 处理文件/文本上传（记录类型）
+    if (askType.value === 'record') {
+      const formData = new FormData()
+      formData.append('conversation_id', conversation_id)
+      if (inputText.value.trim()) formData.append('text', inputText.value.trim())
+      if (files.value.length > 0) formData.append('file', files.value[0])
 
-    let uploadRes
+      let uploadRes
+      if (files.value.length > 0 && inputText.value.trim()) {
+        uploadRes = await uploadMixedInfoService(formData)
+      } else {
+        uploadRes = await uploadInfoService({
+          conversation_id,
+          file: files.value[0] || null,
+          text: inputText.value.trim() || null
+        })
+      }
 
-    if (files.value.length > 0 && inputText.value.trim()) {
-      // 文本+文件 → uploadMixedInfoService
-      uploadRes = await uploadMixedInfoService(formData)
-    } else {
-      // 单文件或单文本 → uploadInfoService
-      // 注意：uploadInfoService 接口期望普通对象，而不是 FormData
-      uploadRes = await uploadInfoService({
-        conversation_id: conversationId,
-        file: files.value[0] || null,
-        text: inputText.value.trim() || null
+      // 添加记录类型的回复
+      conversationHistory.value.push({
+        role: 'user',
+        isUser: true,
+        type: 'record',
+        content: inputText.value,
+        files: [...files.value],
+        timestamp: dayjs().format()
       })
-    }
-
-    console.log('上传接口返回:', uploadRes)
-
-    // 显示用户消息
-    conversationHistory.value.push({
-      role: 'user',
-      isUser: true,
-      type: askType.value,
-      content: inputText.value,
-      files: [...files.value],
-      timestamp: dayjs().format()
-    })
-
-    if (askType.value === 'consult') {
-      //暂缺接口
-      emit('new-consult', {
-        question: inputText.value
-      })
-    } else if (askType.value === 'record') {
       conversationHistory.value.push({
         role: 'assistant',
         isUser: false,
@@ -134,9 +120,61 @@ const submitInput = async () => {
         content: uploadRes.data.message,
         timestamp: dayjs().format()
       })
+
+    } 
+    // 3. 处理咨询类型
+    else if (askType.value === 'consult') {
+      // 添加用户消息到当前对话历史
+      const userMessage = {
+        role: 'user',
+        isUser: true,
+        type: 'consult',
+        content: inputText.value,
+        timestamp: dayjs().format()
+      }
+      conversationHistory.value.push(userMessage)
+
+      // 保存用户消息到历史存储
+      historyStore.addConversation({
+        id: conversation_id,
+        title: inputText.value.trim().substring(0, 30) + (inputText.value.length > 30 ? '...' : ''),
+        created_at,
+        updated_at: created_at,
+        info_count: 1,
+        info_items: [{
+          id: Date.now(), // 临时ID
+          info_type: 'text',
+          title: '用户提问',
+          content: inputText.value,
+          created_at
+        }]
+      })
+
+      // 发送咨询并获取AI回复
+      const replyRes = await sendMessageService(conversation_id, inputText.value)
+      const { assistant_reply } = replyRes.data
+
+      // 添加AI回复到当前对话历史
+      const aiMessage = {
+        role: 'assistant',
+        isUser: false,
+        type: 'reply',
+        content: assistant_reply.content,
+        timestamp: dayjs(assistant_reply.created_at).format()
+      }
+      conversationHistory.value.push(aiMessage)
+
+      // 更新历史存储中的AI回复
+      historyStore.addMessage(conversation_id, {
+        id: assistant_reply.id,
+        info_type: 'text',
+        title: '问心回复',
+        content: assistant_reply.content,
+        created_at: assistant_reply.created_at
+      })
     }
 
-    // 清空输入和文件
+    // 清空输入
     inputText.value = ''
     files.value = []
 
@@ -151,6 +189,7 @@ const submitInput = async () => {
     })
   }
 }
+
 
 // 移除记录
 const removeRecord = (id) => {

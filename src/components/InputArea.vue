@@ -3,7 +3,7 @@
     <!-- 文本输入框 -->
     <textarea
       v-model="localInputText"
-      placeholder="输入前请先在下方选择您的需求：记录事项或咨询决策"
+      placeholder="输入前请先在下方选择您的需求：记录事项或咨询决策(为保证您的用户体验,输入字符建议不超过150字)"
       class="dark-border-input"
       @keyup.enter="submit"
     ></textarea>
