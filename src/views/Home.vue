@@ -28,28 +28,20 @@
 import '@/style/Home.css'
 import { ref } from 'vue'
 import dayjs from 'dayjs'
-import { sendMessageService } from '@/api/conversation'
 import { useUserStore } from '@/stores/user'
 import { useHistoryStore } from '@/stores/history'
 import AssistantPanel from '@/components/AssistantPanel.vue'
 import RightPanel from '@/components/RightPanel.vue'
+import { uploadInfoService, uploadMixedInfoService } from '@/api/conversation'
 
-import {
-  uploadInfoService,
-  uploadMixedInfoService,
-  getInfoDetailService
-} from '@/api/conversation'
-
-import { createConversationService } from '@/api/conversation'
-
-// 状态管理
 const userStore = useUserStore()
 const historyStore = useHistoryStore()
 const isUser = !!userStore.token
 
+// 响应式变量定义（移除了可能的TypeScript类型注释）
 const inputText = ref('')
 const files = ref([])
-const askType = ref('record') // 'record' 或 'consult'
+const askType = ref('record')
 const conversationHistory = ref([])
 const selectedTag = ref(null)
 const previewItems = ref([])
@@ -65,7 +57,6 @@ const avatarConfig = ref({
   }
 })
 
-// 提交输入
 const submitInput = async () => {
   if (!isUser) {
     conversationHistory.value.push({
@@ -77,109 +68,76 @@ const submitInput = async () => {
     })
     return
   }
-
-  // 内容和文件都为空则不提交
   if (!inputText.value.trim() && files.value.length === 0) return
 
   try {
-    // 1. 创建对话（两种类型共用）
-    const convRes = await createConversationService()
-    const { conversation_id, created_at } = convRes.data
+    // 保存用户输入内容，用于即时显示
+    const userInputContent = inputText.value.trim()
+    const currentTime = dayjs().format()
+    
+    // 创建新对话
+    const convId = await historyStore.createConversation(
+      userInputContent.slice(0, 30) || '新对话'
+    )
 
-    // 2. 处理文件/文本上传（记录类型）
+    // 即时显示用户输入，不必等待API返回
+    const userMessage = {
+      role: 'user',
+      isUser: true,
+      type: askType.value,
+      content: userInputContent,
+      timestamp: currentTime
+    }
+    conversationHistory.value.push(userMessage)
+
     if (askType.value === 'record') {
+      // 上传文件/文本
       const formData = new FormData()
-      formData.append('conversation_id', conversation_id)
-      if (inputText.value.trim()) formData.append('text', inputText.value.trim())
+      formData.append('conversation_id', convId)
+      if (userInputContent) formData.append('text', userInputContent)
       if (files.value.length > 0) formData.append('file', files.value[0])
 
-      let uploadRes
-      if (files.value.length > 0 && inputText.value.trim()) {
-        uploadRes = await uploadMixedInfoService(formData)
+      if (files.value.length > 0 && userInputContent) {
+        await uploadMixedInfoService(formData)
       } else {
-        uploadRes = await uploadInfoService({
-          conversation_id,
+        await uploadInfoService({
+          conversation_id: convId,
           file: files.value[0] || null,
-          text: inputText.value.trim() || null
+          text: userInputContent || null
         })
       }
 
-      // 添加记录类型的回复
-      conversationHistory.value.push({
-        role: 'user',
-        isUser: true,
-        type: 'record',
-        content: inputText.value,
-        files: [...files.value],
-        timestamp: dayjs().format()
-      })
+      // 记录类型添加成功提示
       conversationHistory.value.push({
         role: 'assistant',
         isUser: false,
         type: 'reply',
-        content: uploadRes.data.message,
+        content: '记录已保存成功',
         timestamp: dayjs().format()
       })
 
-    } 
-    // 3. 处理咨询类型
-    else if (askType.value === 'consult') {
-      // 添加用户消息到当前对话历史
-      const userMessage = {
-        role: 'user',
-        isUser: true,
-        type: 'consult',
-        content: inputText.value,
-        timestamp: dayjs().format()
-      }
-      conversationHistory.value.push(userMessage)
-
-      // 保存用户消息到历史存储
-      historyStore.addConversation({
-        id: conversation_id,
-        title: inputText.value.trim().substring(0, 30) + (inputText.value.length > 30 ? '...' : ''),
-        created_at,
-        updated_at: created_at,
-        info_count: 1,
-        info_items: [{
-          id: Date.now(), // 临时ID
-          info_type: 'text',
-          title: '用户提问',
-          content: inputText.value,
-          created_at
-        }]
-      })
-
-      // 发送咨询并获取AI回复
-      const replyRes = await sendMessageService(conversation_id, inputText.value)
-      const { assistant_reply } = replyRes.data
-
-      // 添加AI回复到当前对话历史
-      const aiMessage = {
-        role: 'assistant',
-        isUser: false,
-        type: 'reply',
-        content: assistant_reply.content,
-        timestamp: dayjs(assistant_reply.created_at).format()
-      }
-      conversationHistory.value.push(aiMessage)
-
-      // 更新历史存储中的AI回复
-      historyStore.addMessage(conversation_id, {
-        id: assistant_reply.id,
-        info_type: 'text',
-        title: '问心回复',
-        content: assistant_reply.content,
-        created_at: assistant_reply.created_at
-      })
+      // 刷新对话详情
+      await historyStore.fetchConversationDetail(convId)
+    } else if (askType.value === 'consult') {
+      // 发送消息并获取 AI 回复
+      await historyStore.sendMessage(convId, userInputContent)
+      
+      // 刷新本地 UI（显示最新对话内容，包括AI回复）
+      const rawMessages = historyStore.getConversationById(convId)?.messages || []
+      conversationHistory.value = rawMessages.map(m => ({
+         role: m.role,
+         isUser: m.role === 'user',
+         type: m.role === 'user' ? askType.value : 'reply',
+         content: m.content,
+         timestamp: dayjs(m.created_at).format()
+      }))
     }
 
     // 清空输入
     inputText.value = ''
     files.value = []
-
-  } catch (error) {
-    console.error('提交失败：', error.response?.data || error.message)
+  } catch (e) {
+    console.error('提交失败：', e)
     conversationHistory.value.push({
       role: 'assistant',
       isUser: false,
@@ -190,9 +148,15 @@ const submitInput = async () => {
   }
 }
 
-
-// 移除记录
 const removeRecord = (id) => {
   previewItems.value = previewItems.value.filter(item => item.id !== id)
 }
 </script>
+
+<style src="@/style/Home.css"></style>
+
+
+
+
+
+

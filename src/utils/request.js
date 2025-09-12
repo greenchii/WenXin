@@ -7,7 +7,7 @@ const baseURL = 'http://106.15.230.86:80/api'
 
 const instance = axios.create({
   baseURL,
-  timeout: 5000,
+  timeout: 30000,
 })
 
 // 请求拦截器：添加 JWT 认证头

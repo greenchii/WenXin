@@ -1,0 +1,85 @@
+{
+    "info": {
+      "name": "Wenxin API",
+      "_postman_id": "3d6f8e9c-7b2d-4b61-91d0-1a3d82d92e9c",
+      "description": "测试问心助手对话接口",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+      {
+        "name": "Send Message to Conversation",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}",
+              "type": "text"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "type": "text"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"content\": \"帮我优化绩效考核方案\"\n}"
+          },
+          "url": {
+            "raw": "http://106.15.230.86:80/api/conversation/{{conversationId}}/message",
+            "protocol": "http",
+            "host": [
+              "106.15.230.86"
+            ],
+            "port": "80",
+            "path": [
+              "api",
+              "conversation",
+              "{{conversationId}}",
+              "message"
+            ]
+          }
+        },
+        "response": []
+      },
+      {
+        "name": "Get Conversation Detail",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}",
+              "type": "text"
+            }
+          ],
+          "url": {
+            "raw": "http://106.15.230.86:80/api/conversation/{{conversationId}}",
+            "protocol": "http",
+            "host": [
+              "106.15.230.86"
+            ],
+            "port": "80",
+            "path": [
+              "api",
+              "conversation",
+              "{{conversationId}}"
+            ]
+          }
+        },
+        "response": []
+      }
+    ],
+    "variable": [
+      {
+        "key": "token",
+        "value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc1NzYyODgwMCwianRpIjoiYzc1MGU5YzgtZDNmMC00ZWEyLTg1ZDItNGY4MjhiYzIxZGJhIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6IjIyIiwibmJmIjoxNzU3NjI4ODAwLCJjc3JmIjoiZmFiNDBhZjQtOTUzNC00NDI2LTgzMjYtMWE2MTc5ZmE5NjcxIiwiZXhwIjoxNzU3NzE1MjAwfQ.XkUY_WmzTm-UhdP2yBqrMCh4cmoRp_xPGmQ7Dp5nvvQ"
+      },
+      {
+        "key": "conversationId",
+        "value": "18"
+      }
+    ]
+  }
+  

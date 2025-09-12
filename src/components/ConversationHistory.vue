@@ -13,7 +13,7 @@
         class="message-container"
         :class="{ 'user-message-container': msg.isUser }"
       >
-        <!-- 助手消息：头像在左，内容在右 -->
+        <!-- 助手消息 -->
         <template v-if="!msg.isUser">
           <div class="message-avatar">
             <img 
@@ -22,20 +22,34 @@
               @error="handleImageError('assistant')"
             >
           </div>
-          <div class="message-content assistant-message">
-            {{ msg.content }}
-            <div class="reply-options" v-if="index === conversationHistory.length - 1 && msg.type === 'consult'">
+
+          <div class="message-block">
+            <div class="message-content assistant-message">
+              {{ msg.content }}
+            </div>
+
+            <!-- 操作按钮放在气泡外 -->
+            <MessageActions :message="msg" :conv-id="null" />
+
+            <div class="reply-options" 
+                 v-if="index === conversationHistory.length - 1 && msg.type === 'consult'">
               <button class="reply-btn" @click="$emit('newQuestion')">新问题</button>
               <button class="reply-btn" @click="$emit('followUp')">追问</button>
             </div>
           </div>
         </template>
 
-        <!-- 用户消息：内容在左，头像在右 -->
+        <!-- 用户消息 -->
         <template v-else>
-          <div class="message-content user-message">
-            {{ msg.content }}
+          <div class="message-block user-message-block">
+            <div class="message-content user-message">
+              {{ msg.content }}
+            </div>
+
+            <!-- 操作按钮放在气泡外 -->
+            <MessageActions :message="msg" :conv-id="null" />
           </div>
+
           <div class="message-avatar">
             <img 
               :src="avatarConfig.user.src" 
@@ -49,8 +63,10 @@
   </div>
 </template>
 
+
 <script setup>
 import { defineEmits } from 'vue'
+import MessageActions from '@/components/MessageActions.vue'  // <-- 新增 import
 
 const props = defineProps({
   conversationHistory: Array,
@@ -104,3 +120,4 @@ const handleImageError = (type) => {
   background-color: #f3f4f6;
 }
 </style>
+

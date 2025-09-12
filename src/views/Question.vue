@@ -10,12 +10,10 @@
       <h1>{{ conversation?.title || '对话详情' }}</h1>
     </div>
 
-    <!-- 加载状态 -->
     <div class="loading" v-if="isLoading">
       <p>加载对话详情中...</p>
     </div>
 
-    <!-- 错误状态 -->
     <div class="error" v-if="error && !isLoading">
       <p>加载失败: {{ error }}</p>
       <button @click="loadConversation()">重试</button>
@@ -24,29 +22,30 @@
     <div class="conversation-container" v-if="conversation && !isLoading && !error">
       <div
         class="message-row"
-        v-for="(item, index) in conversation.info_items || []"
+        v-for="(item, index) in displayedMessages"
         :key="item.id || index"
-        :class="isUserMessage(index) ? 'user' : 'assistant'"
+        :class="isUserMessage(item) ? 'user' : 'assistant'"
       >
-        <!-- 头像 -->
-        <div class="avatar" :class="isUserMessage(index) ? 'user' : 'assistant'" 
-             :title="isUserMessage(index) ? '您' : '问心助手'"></div>
+        <div class="avatar" :class="isUserMessage(item) ? 'user' : 'assistant'" 
+             :title="isUserMessage(item) ? '您' : '问心助手'"></div>
 
-        <!-- 气泡与名字与时间包装 -->
         <div class="message-block">
-          <!-- 名称 -->
-          <div class="name" :class="isUserMessage(index) ? 'user' : 'assistant'">
-            {{ isUserMessage(index) ? '您' : '问心助手' }}
+          <div class="name" :class="isUserMessage(item) ? 'user' : 'assistant'">
+            {{ isUserMessage(item) ? '您' : '问心助手' }}
           </div>
 
-          <!-- 气泡内容 -->
-          <div class="bubble" :class="isUserMessage(index) ? 'user' : 'assistant'">
-            <div class="message-content">
-              {{ item.content }}
+          <div class="bubble" :class="isUserMessage(item) ? 'user' : 'assistant'">
+            <!-- message-content 使用 v-html 渲染安全处理后的字符串 -->
+            <div class="message-content" v-html="formatContent(item.content)"></div>
+
+            <div v-if="isSaveHint(item)" class="save-hint">
+              <small>（检测到可保存的信息，您可以点击“保存”以保留该条信息）</small>
             </div>
           </div>
 
-          <!-- 时间 -->
+          <!-- 新增：复制 & 保存 操作按钮（显示在时间上方、靠右） -->
+          <MessageActions :message="item" :conv-id="conversationId" />
+
           <div class="time">
             {{ formatTime(item.created_at) }}
           </div>
@@ -61,14 +60,17 @@
       </button>
     </div>
 
-    <!-- 追问区域 -->
     <div class="follow-up" v-if="conversation && !isLoading && !error">
       <textarea
         v-model="followUpText"
-        placeholder="输入您的追问...（按 Enter 发送，可 Shift+Enter 换行）"
+        placeholder="输入您的追问...（不超过150字，按 Enter 发送，可 Shift+Enter 换行）"
         @keydown.enter.exact.prevent="sendFollowUp"
+        :maxlength="MAX_CHARS"
       ></textarea>
-      <button @click="sendFollowUp" class="send-btn">发送</button>
+      <div class="follow-actions">
+        <small>{{ remainingChars }} 字可输入</small>
+        <button @click="sendFollowUp" class="send-btn">发送</button>
+      </div>
     </div>
   </div>
 </template>
@@ -78,121 +80,116 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHistoryStore } from '@/stores/history.js'
 import dayjs from 'dayjs'
+import MessageActions from '@/components/MessageActions.vue'  // <-- 新增 import
 
-// 路由 & store
 const route = useRoute()
 const router = useRouter()
 const historyStore = useHistoryStore()
 
-// 本地响应式状态
 const conversation = ref(null)
 const followUpText = ref('')
 const isLoading = ref(false)
 const error = ref(null)
-
-// 响应路由 id
+const MAX_CHARS = 150
 const conversationId = computed(() => route.params.id)
 
-// 判断消息是否为用户发送（简单判断：奇数索引为用户，偶数为助手）
-const isUserMessage = (index) => {
-  return index % 2 === 0; // 用户消息在偶数位置（0, 2, 4...）
-}
-
-// 时间格式化
-const formatTime = (timestamp) => {
-  if (!timestamp) return ''
-  return dayjs(timestamp).format('YYYY-MM-DD HH:mm')
-}
-
-// 加载并设置当前对话
-async function loadConversation() {
-  if (!conversationId.value) {
-    conversation.value = null
-    return
+const displayedMessages = computed(() => {
+  if (!conversation.value) return []
+  if (Array.isArray(conversation.value.messages) && conversation.value.messages.length) {
+    return conversation.value.messages
   }
+  if (Array.isArray(conversation.value.info_items)) {
+    return conversation.value.info_items.map((it, idx) => ({
+      id: it.id ?? `info-${idx}`,
+      role: it.role ?? 'assistant',
+      content: it.content || it.description || it.title || '',
+      created_at: it.created_at
+    }))
+  }
+  return []
+})
 
+const remainingChars = computed(() => Math.max(0, MAX_CHARS - (followUpText.value ? followUpText.value.length : 0)))
+
+const formatTime = (timestamp) => timestamp ? dayjs(timestamp).format('YYYY-MM-DD HH:mm') : ''
+
+const isUserMessage = (message) => {
+  if (!message) return false
+  const role = (message.role || message.sender || '').toString().toLowerCase()
+  return role === 'user' || role === 'client' || role === 'me' || role === 'you' ? true : false
+}
+
+const isSaveHint = (message) => {
+  if (!message) return false
+  if (message.save_hint === true) return true
+  const text = (message.content || '').toString()
+  return /保存|是否需要保存|需要保存/.test(text)
+}
+
+// 安全转义并保守处理空格：不要生成长串不可换行的 &nbsp;
+function escapeHtml(str) {
+  if (str == null) return ''
+  return str.toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+// 重要：只做最保守的空格处理（避免长串 &nbsp;），并把换行转为 <br/>
+function formatContent(raw) {
+  const s = escapeHtml(raw)
+  // 将两个连续空格 -> ' &nbsp;' （避免大量不可断行空格）
+  const withSpaces = s.replace(/ {2,}/g, (m) => {
+    const extra = Math.min(m.length - 1, 2)
+    return ' ' + '&nbsp;'.repeat(extra)
+  })
+  return withSpaces.replace(/\n/g, '<br/>')
+}
+
+async function loadConversation() {
+  if (!conversationId.value) { conversation.value = null; return }
   try {
-    isLoading.value = true
-    error.value = null
-    
-    // 先尝试从本地获取
+    isLoading.value = true; error.value = null
     let conv = historyStore.getConversationById(conversationId.value)
-    
-    // 如果本地没有，从API获取
-    if (!conv) {
-      conv = await historyStore.fetchConversationDetail(conversationId.value)
+    if (!conv || !(conv.messages && conv.messages.length)) {
+      try { conv = await historyStore.fetchConversationDetail(conversationId.value) } catch (e) { if (!conv) throw e }
     }
-    
     conversation.value = conv
   } catch (e) {
     console.error('Failed to load conversation:', e)
-    error.value = e.message || '加载对话失败'
+    error.value = e?.message || '加载对话失败'
     conversation.value = null
-  } finally {
-    isLoading.value = false
-  }
+  } finally { isLoading.value = false }
 }
 
-// 发送追问
-function sendFollowUp() {
+async function sendFollowUp() {
   const text = (followUpText.value || '').trim()
   if (!text || !conversationId.value) return
-
-  const userMsg = {
-    info_type: 'text',
-    title: '用户追问',
-    description: '用户的追问内容',
-    content: text,
-    created_at: dayjs().format()
-  }
-
+  if (text.length > MAX_CHARS) { alert(`输入超过 ${MAX_CHARS} 字，请缩短后再发送`); return }
   try {
-    historyStore.addMessage(conversationId.value, userMsg)
-    
-    // 清空输入框
+    isLoading.value = true
+    await historyStore.sendMessage(conversationId.value, text)
     followUpText.value = ''
-    
-    // 重新加载对话
-    setTimeout(() => {
-      conversation.value = historyStore.getConversationById(conversationId.value)
-      
-      // 模拟AI回复
-      setTimeout(() => {
-        historyStore.addMessage(
-          conversationId.value, 
-          {
-            info_type: 'text',
-            title: '问心回复',
-            description: '问心助手的回复',
-            content: "这是问心助手的回复。在实际应用中，这里会显示大模型生成的智能回答。",
-          }
-        )
-        conversation.value = historyStore.getConversationById(conversationId.value)
-      }, 1000)
-    }, 50)
+    conversation.value = historyStore.getConversationById(conversationId.value)
+    if (!conversation.value || !(conversation.value.messages && conversation.value.messages.length)) {
+      await loadConversation()
+    }
   } catch (e) {
-    console.error('Failed to add message:', e)
-  }
+    console.error('Failed to send follow up:', e)
+    alert('发送失败，请稍后重试')
+  } finally { isLoading.value = false }
 }
 
-// 返回首页的方法
-function goToHome() {
-  router.push('/')
-}
+function goToHome() { router.push('/') }
 
-// 初始化
-onMounted(() => {
-  loadConversation()
-})
+onMounted(() => { loadConversation() })
 
-// 监听路由 id 的变化
-watch(
-  () => conversationId.value,
-  () => {
-    loadConversation()
-  }
-)
+watch(() => conversationId.value, () => { loadConversation() })
 </script>
 
 <style src="../style/Question.css" ></style>
+
+
 

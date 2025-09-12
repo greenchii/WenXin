@@ -79,8 +79,9 @@
             <el-input v-model="editForm.title" />
           </el-form-item>
           <el-form-item label="详细内容">
-            <el-input type="textarea" v-model="editForm.content" rows="4" />
+            <el-input type="textarea" v-model="editForm.content" :rows="4" />
           </el-form-item>
+
         </el-form>
         <template #footer>
           <el-button @click="isEditDialogVisible = false">取消</el-button>

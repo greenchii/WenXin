@@ -4,16 +4,16 @@ import { useUserStore } from '@/stores/user.js'
 import {
   getConversationListService,
   getConversationDetailService,
-  createConversationService
+  createConversationService,
+  sendMessageService
 } from '@/api/conversation'
 
 /**
  * History store
  * - 本地优先（localStorage）
- * - 若浏览器无本地数据，会用 loadTestData() 填充（你要求的完整示例数据）
+ * - 若浏览器无本地数据，会用 loadTestData() 填充
  * - 若已登录，会尝试异步从后端拉取并合并
  */
-
 export const useHistoryStore = defineStore('history', {
   state: () => ({
     conversations: [],
@@ -72,6 +72,7 @@ export const useHistoryStore = defineStore('history', {
   },
 
   actions: {
+    // ------------ 本地 storage 相关 ------------
     loadFromLocalStorage() {
       try {
         const saved = localStorage.getItem('consultHistory')
@@ -327,183 +328,307 @@ export const useHistoryStore = defineStore('history', {
       this.saveToLocalStorage()
     },
 
-    // ---------- init: local-first，然后可选异步合并后端 ----------
-    async init() {
-      const userStore = useUserStore()
-    
-      // 1) 先加载本地（若已有 localStorage 数据则直接显示）
-      const hasLocal = this.loadFromLocalStorage()
-    
-      // 2) 若没有本地数据，则写入示例数据
-      if (!hasLocal && (!this.conversations || this.conversations.length === 0)) {
-        this.loadTestData()
+// ---------- init: local-first，然后可选异步合并后端 ----------
+async init() {
+  const userStore = useUserStore()
+
+  // 1) 先加载本地（若已有 localStorage 数据则直接显示）
+  const hasLocal = this.loadFromLocalStorage()
+
+  // 2) 若没有本地数据，则写入示例数据
+  if (!hasLocal && (!this.conversations || this.conversations.length === 0)) {
+    this.loadTestData()
+  }
+
+  // 3) 若用户已登录，异步尝试从后端拉取并合并
+  if (userStore?.token) {
+    this.isLoading = true
+    try {
+      const res = await getConversationListService('30days')
+      const serverList = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : [])
+      if (serverList.length > 0) {
+        const localById = {}
+        const localConversations = this.conversations || []
+        localConversations.forEach((c) => {
+          try {
+            const cId = `${c.id}`
+            localById[cId] = c
+          } catch (e) {
+            console.error('处理本地对话出错:', e, '数据:', c)
+          }
+        })
+
+        const merged = []
+        serverList.forEach((s) => {
+          try {
+            const sid = `${s.id ?? s.conversation_id ?? s.conversationId}`
+            const local = localById[sid]
+            const mapped = {
+              id: sid,
+              title: s.title || (local?.title) || '对话',
+              created_at: s.created_at || s.createdAt || (local?.created_at) || new Date().toISOString(),
+              updated_at: s.updated_at || s.updatedAt || (local?.updated_at) || new Date().toISOString(),
+              info_count: s.info_count ?? s.infoCount ?? (local?.info_count) ?? 0,
+              // 确保messages数组存在
+              messages: Array.isArray(s.messages) ? s.messages : (local?.messages ? [...local.messages] : []),
+              info_items: (local && Array.isArray(local.info_items)) ? local.info_items : (Array.isArray(s.info_items) ? s.info_items : [])
+            }
+            merged.push(mapped)
+            delete localById[sid]
+          } catch (e) {
+            console.error('处理服务端对话出错:', e, '数据:', s)
+          }
+        })
+
+        Object.values(localById).forEach((l) => {
+          try {
+            merged.push(l)
+          } catch (e) {
+            console.error('添加剩余本地对话出错:', e, '数据:', l)
+          }
+        })
+
+        this.conversations = merged
+        this.saveToLocalStorage()
       }
-    
-      // 3) 若用户已登录，异步尝试从后端拉取并合并
-if (userStore?.token) {
+      this.error = null
+    } catch (e) {
+      console.warn('Failed to fetch conversation list from server (will use local data):', e)
+      this.error = '无法连接到后端，已使用本地数据。'
+    } finally {
+      this.isLoading = false
+    }
+  } else {
+    this.error = null
+  }
+},
+
+// 创建对话（优先后端，失败或未登录时本地创建）
+async createConversation(title = '新对话') {
+  const userStore = useUserStore()
+  if (userStore?.token) {
+    try {
+      const res = await createConversationService({ title })
+      const payload = res.data && !Array.isArray(res.data) ? (res.data.data || res.data) : res.data
+      const newConv = {
+        id: payload.id ?? payload.conversation_id ?? `conv-${Date.now()}`,
+        title: payload.title || title,
+        created_at: payload.created_at || new Date().toISOString(),
+        updated_at: payload.updated_at || payload.created_at || new Date().toISOString(),
+        info_count: payload.info_count ?? 0,
+        // 初始化messages数组
+        messages: [],
+        info_items: payload.info_items || []
+      }
+      this.conversations.unshift(newConv)
+      this.saveToLocalStorage()
+      return newConv.id
+    } catch (e) {
+      console.warn('Failed to create conversation on server, fallback to local:', e)
+    }
+  }
+  const localConv = {
+    id: `conv-${Date.now()}`,
+    title,
+    created_at: dayjs().format(),
+    updated_at: dayjs().format(),
+    info_count: 0,
+    // 初始化messages数组
+    messages: [],
+    info_items: []
+  }
+  this.conversations.unshift(localConv)
+  this.saveToLocalStorage()
+  return localConv.id
+},
+
+/**
+ * 从后端拉取单个对话详情（包括 messages 与 info_items）
+ * - 会按 created_at 升序排列 messages
+ * - messages 超过 20 条时仅保留最近 20 条（作为上下文）
+ * - 合并到本地 conversations（存在则更新，不存在则插入）
+ */
+async fetchConversationDetail(convId) {
+  if (!convId) throw new Error('conversation id required')
   this.isLoading = true
   try {
-    const res = await getConversationListService('30days')
-    
-    const serverList = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : [])
-    if (serverList.length > 0) {
-      // ===== 核心处理日志（已注释保留，便于后续调试） =====
-      // console.log('开始处理 serverList，长度:', serverList.length)
-      
-      const localById = {}
-      const localConversations = this.conversations || []
-      // console.log('本地对话列表长度:', localConversations.length)
-      
-      // 处理本地对话（保留错误捕获，移除打印）
-      localConversations.forEach((c, index) => {
-        try {
-          const cId = `${c.id}`
-          // console.log(`本地对话[${index}] id:`, cId)
-          localById[cId] = c
-        } catch (e) {
-          console.error(`处理本地对话[${index}]出错:`, e, '数据:', c)
-        }
-      })
-      
-      const merged = []
-      // console.log('开始处理服务端对话...')
-      
-      // 处理服务端对话（保留错误捕获，移除打印）
-      serverList.forEach((s, index) => {
-        try {
-          // console.log(`处理服务端对话[${index}]数据:`, s)
-          
-          // 解析服务端对话ID
-          const sid = `${s.id ?? s.conversation_id ?? s.conversationId}`
-          // console.log(`服务端对话[${index}]解析出的sid:`, sid)
-          
-          // 获取本地对话
-          const local = localById[sid]
-          // console.log(`服务端对话[${index}]对应的本地对话:`, local)
-          
-          // 合并数据
-          const mapped = {
-            id: sid,
-            title: s.title || (local?.title) || '对话',
-            created_at: s.created_at || s.createdAt || (local?.created_at) || new Date().toISOString(),
-            updated_at: s.updated_at || s.updatedAt || (local?.updated_at) || new Date().toISOString(),
-            info_count: s.info_count ?? s.infoCount ?? (local?.info_count) ?? 0,
-            info_items: (local && Array.isArray(local.info_items)) ? local.info_items : (Array.isArray(s.info_items) ? s.info_items : [])
-          }
-          // console.log(`服务端对话[${index}]合并后的数据:`, mapped)
-          
-          merged.push(mapped)
-          delete localById[sid]
-        } catch (e) {
-          console.error(`处理服务端对话[${index}]出错:`, e, '数据:', s)
-        }
-      })
-      
-      // 处理剩余本地对话（保留错误捕获，移除打印）
-      // console.log('剩余本地对话数量:', Object.values(localById).length)
-      Object.values(localById).forEach((l, index) => {
-        try {
-          // console.log(`添加剩余本地对话[${index}]:`, l)
-          merged.push(l)
-        } catch (e) {
-          console.error(`添加剩余本地对话[${index}]出错:`, e, '数据:', l)
-        }
-      })
-      
-      this.conversations = merged
-      // console.log('合并后的数据:', merged)
+    const res = await getConversationDetailService(convId)
+    const payload = (res && res.data && !Array.isArray(res.data)) ? (res.data.data || res.data) : (res && res.data) || res
+    const serverConv = payload || {}
 
-      this.saveToLocalStorage()
-      // ===== 日志结束 =====
+    // 基本字段提取
+    const id = `${serverConv.id ?? serverConv.conversation_id ?? convId}`
+    const title = serverConv.title || '对话'
+    const created_at = serverConv.created_at || serverConv.createdAt || new Date().toISOString()
+    const updated_at = serverConv.updated_at || serverConv.updatedAt || created_at
+
+    // messages 安全提取并标准化
+    let messages = Array.isArray(serverConv.messages) ? serverConv.messages : []
+    messages = messages.map(m => ({
+      id: m.id ?? m.message_id ?? `msg-${Date.now()}-${Math.random()}`,
+      role: m.role ?? m.sender ?? m.from ?? (m.is_user ? 'user' : 'assistant'),
+      content: (typeof m.content === 'string') ? m.content : (m.text ?? m.body ?? ''),
+      created_at: m.created_at ?? m.timestamp ?? dayjs().format()
+    }))
+
+    // 按时间排序并保留最近 MAX_CONTEXT 条
+    messages.sort((a, b) => dayjs(a.created_at).valueOf() - dayjs(b.created_at).valueOf())
+    const MAX_CONTEXT = 20
+    if (messages.length > MAX_CONTEXT) messages = messages.slice(-MAX_CONTEXT)
+
+    // info_items 提取（保持后端返回的笔记/记录）
+    let info_items = Array.isArray(serverConv.info_items) ? serverConv.info_items : (Array.isArray(serverConv.items) ? serverConv.items : [])
+    if (!Array.isArray(info_items)) info_items = []
+
+    // 构建映射对象
+    const mapped = {
+      id,
+      title,
+      created_at,
+      updated_at,
+      messages,
+      info_items,
+      info_count: info_items.length
     }
+
+    // 合并到本地 conversations：如果存在则替换（避免重复 push）
+    const existingIndex = this.conversations.findIndex(c => `${c.id}` === `${id}`)
+    if (existingIndex >= 0) {
+      // 合并策略：后端消息为准，保留本地 info_items（若本地有）
+      const existing = this.conversations[existingIndex] || {}
+      mapped.info_items = (existing.info_items && existing.info_items.length) ? existing.info_items : mapped.info_items
+      mapped.title = mapped.title || existing.title
+      mapped.created_at = mapped.created_at || existing.created_at
+      mapped.updated_at = mapped.updated_at || existing.updated_at
+      // 替换而不是 push
+      this.conversations.splice(existingIndex, 1, mapped)
+    } else {
+      // 若不存在，插入到头部
+      this.conversations.unshift(mapped)
+    }
+
+    // 去重 conversations 中 messages（防止同一消息重复存在）
+    this.conversations = this.conversations.map(conv => {
+      if (!Array.isArray(conv.messages)) return conv
+      const unique = []
+      const seen = new Set()
+      conv.messages.forEach(m => {
+        const mid = m.id ?? (m.created_at + '|' + (m.content || '').slice(0, 20))
+        if (!seen.has(mid)) {
+          seen.add(mid)
+          unique.push(m)
+        }
+      })
+      conv.messages = unique
+      return conv
+    })
+
+    this.saveToLocalStorage()
     this.error = null
+    return mapped
   } catch (e) {
-    console.warn('Failed to fetch conversation list from server (will use local data):', e)
-    this.error = '无法连接到后端，已使用本地数据。'
+    console.error('fetchConversationDetail error:', e)
+    this.error = e?.message || '获取对话详情失败'
+    throw e
   } finally {
     this.isLoading = false
   }
-} else {
-  this.error = null
-}
 },
 
-    // 创建对话（优先后端，失败或未登录时本地创建）
-    async createConversation(title = '新对话') {
-      const userStore = useUserStore()
-      if (userStore?.token) {
-        try {
-          const res = await createConversationService({ title })
-          const payload = res.data && !Array.isArray(res.data) ? (res.data.data || res.data) : res.data
-          const newConv = {
-            id: payload.id ?? payload.conversation_id ?? `conv-${Date.now()}`,
-            title: payload.title || title,
-            created_at: payload.created_at || new Date().toISOString(),
-            updated_at: payload.updated_at || payload.created_at || new Date().toISOString(),
-            info_count: payload.info_count ?? 0,
-            info_items: payload.info_items || []
-          }
-          this.conversations.unshift(newConv)
-          this.saveToLocalStorage()
-          return newConv.id
-        } catch (e) {
-          console.warn('Failed to create conversation on server, fallback to local:', e)
-        }
+
+/**
+ * 发送消息（会调用后端 sendMessage 接口）
+ * - 发送成功后会重新拉取对话详情以保证显示一致
+ */
+async sendMessage(convId, content) {
+  if (!convId) throw new Error('conversation id required')
+  if (!content || !content.trim()) throw new Error('message content empty')
+  
+  try {
+    // 先在本地添加用户消息，提高响应速度
+    const conversation = this.getConversationById(convId)
+    if (conversation) {
+      if (!Array.isArray(conversation.messages)) {
+        conversation.messages = []
       }
-      const localConv = {
-        id: `conv-${Date.now()}`,
-        title,
-        created_at: dayjs().format(),
-        updated_at: dayjs().format(),
-        info_count: 0,
-        info_items: []
-      }
-      this.conversations.unshift(localConv)
-      this.saveToLocalStorage()
-      return localConv.id
-    },
-
-    // 向对话添加信息（本地）
-    addMessage(conversationId, message) {
-      const conversation = this.getConversationById(conversationId)
-      if (conversation) {
-        const newMessage = {
-          id: message.id || `msg-${Date.now()}`,
-          info_type: message.info_type || 'text',
-          title: message.title || '',
-          description: message.description || '',
-          content: message.content || '',
-          created_at: message.created_at || dayjs().format()
-        }
-
-        if (!Array.isArray(conversation.info_items)) conversation.info_items = []
-        conversation.info_items.push(newMessage)
-        conversation.updated_at = newMessage.created_at
-        conversation.info_count = conversation.info_items.length
-        this.saveToLocalStorage()
-        return newMessage
-      }
-      return null
-    },
-
-    addConversation(conversationData) {
-      const newConv = {
-        ...conversationData,
-        id: conversationData.id || `conv-${Date.now()}`,
-        created_at: conversationData.created_at || dayjs().format(),
-        updated_at: conversationData.updated_at || dayjs().format(),
-        info_count: conversationData.info_count || 0,
-        info_items: conversationData.info_items || []
-      }
-
-      this.conversations.push(newConv)
-      this.saveToLocalStorage()
-      return newConv.id
-    },
-
-    deleteConversation(id) {
-      this.conversations = (this.conversations || []).filter(conv => `${conv.id}` !== `${id}`)
+      conversation.messages.push({
+        id: `msg-${Date.now()}`,
+        role: 'user',
+        content: content,
+        created_at: dayjs().format()
+      })
       this.saveToLocalStorage()
     }
+    
+    // 调用后端发送消息接口
+    const res = await sendMessageService(convId, content)
+    
+    // 等待短暂时间（如果后端是异步生成回复，可能需要轮询；这里简单做一次 fetch）
+    await this.fetchConversationDetail(convId)
+    return true
+  } catch (e) {
+    console.error('sendMessage failed:', e)
+    throw e
   }
+},
+
+// 向对话添加信息（本地，仅用于离线或示例）
+addMessage(conversationId, message) {
+  const conversation = this.getConversationById(conversationId)
+  if (conversation) {
+    // 确保messages数组存在
+    if (!Array.isArray(conversation.messages)) {
+      conversation.messages = []
+    }
+    
+    const newMessage = {
+      id: message.id || `msg-${Date.now()}`,
+      role: message.role || 'user',
+      content: message.content || '',
+      created_at: message.created_at || dayjs().format()
+    }
+
+    conversation.messages.push(newMessage)
+    
+    // 同时更新info_items保持兼容性
+    if (!Array.isArray(conversation.info_items)) conversation.info_items = []
+    conversation.info_items.push({
+      id: newMessage.id,
+      info_type: 'text',
+      title: message.role === 'user' ? '用户输入' : '系统回复',
+      description: '',
+      content: newMessage.content,
+      created_at: newMessage.created_at
+    })
+    
+    conversation.updated_at = newMessage.created_at
+    conversation.info_count = conversation.info_items.length
+    this.saveToLocalStorage()
+    return newMessage
+  }
+  return null
+},
+
+addConversation(conversationData) {
+  const newConv = {
+    ...conversationData,
+    id: conversationData.id || `conv-${Date.now()}`,
+    created_at: conversationData.created_at || dayjs().format(),
+    updated_at: conversationData.updated_at || dayjs().format(),
+    info_count: conversationData.info_count || 0,
+    // 确保messages数组存在
+    messages: conversationData.messages || [],
+    info_items: conversationData.info_items || []
+  }
+
+  this.conversations.push(newConv)
+  this.saveToLocalStorage()
+  return newConv.id
+},
+
+deleteConversation(id) {
+  this.conversations = (this.conversations || []).filter(conv => `${conv.id}` !== `${id}`)
+  this.saveToLocalStorage()
+}
+}
 })

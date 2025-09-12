@@ -1,3 +1,4 @@
+<!-- src/components/InputArea.vue -->
 <template>
   <div class="input-area">
     <!-- 文本输入框 -->
@@ -5,7 +6,8 @@
       v-model="localInputText"
       placeholder="输入前请先在下方选择您的需求：记录事项或咨询决策(为保证您的用户体验,输入字符建议不超过150字)"
       class="dark-border-input"
-      @keyup.enter="submit"
+      @keyup.enter="onEnter"
+      :maxlength="MAX_CHARS"
     ></textarea>
 
     <div class="action-row">
@@ -55,7 +57,12 @@
       </label>
 
       <!-- 提交按钮 -->
-      <button class="submit-btn" @click="submit">提交</button>
+      <button class="submit-btn" @click="submit" :disabled="isSubmitDisabled">提交</button>
+    </div>
+
+    <!-- 提示剩余字符 -->
+    <div class="char-hint">
+      <small>{{ remainingChars }} 字可输入（最多 {{ MAX_CHARS }} 字）</small>
     </div>
 
     <!-- 文件预览 -->
@@ -79,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 
 const props = defineProps({
   inputText: String,
@@ -90,36 +97,54 @@ const props = defineProps({
 const emit = defineEmits(['update:inputText', 'update:files', 'update:askType', 'submit'])
 
 // 本地状态
-const localInputText = ref(props.inputText)
+const MAX_CHARS = 150
+const localInputText = ref(props.inputText || '')
 const localFiles = ref(props.files || [])
 const localAskType = ref(props.askType || 'record')
+const showUploadOptions = ref(false)
+const isSubmitDisabled = computed(() => !localInputText.value.trim() && localFiles.value.length === 0)
 
 // watch 同步父组件 prop
 watch(() => props.inputText, val => localInputText.value = val)
-watch(() => props.files, val => localFiles.value = val)
+watch(() => props.files, val => localFiles.value = val || [])
 watch(() => props.askType, val => localAskType.value = val)
 
-// 输入变化时通知父组件
-watch(localInputText, val => emit('update:inputText', val))
+// 输入变化时通知父组件（并限制字符长度）
+watch(localInputText, val => {
+  if (val && val.length > MAX_CHARS) {
+    localInputText.value = val.slice(0, MAX_CHARS)
+  }
+  emit('update:inputText', localInputText.value)
+})
 watch(localFiles, val => emit('update:files', val))
 watch(localAskType, val => emit('update:askType', val))
 
-// 上传文件
-const showUploadOptions = ref(false)//点击按钮出现附件类型选项
 const toggleUploadOptions = () => showUploadOptions.value = !showUploadOptions.value
+
 const onFilesChange = (e) => {
   const selected = Array.from(e.target.files)
   localFiles.value = [...localFiles.value, ...selected]
   showUploadOptions.value = false
 }
 
-// 移除文件
 const removeFile = (index) => {
   localFiles.value.splice(index, 1)
 }
 
-// 提交
-const submit = () => emit('submit')//submit定义在Home.vue
+// 当用户按 Enter 时触发提交（父组件处理）
+const onEnter = (e) => {
+  if (!e.shiftKey) {
+    // 阻止默认换行行为（由父组件控制）
+    e.preventDefault()
+    submit()
+  }
+}
+
+const submit = () => {
+  emit('submit')
+}
+
+const remainingChars = computed(() => Math.max(0, MAX_CHARS - (localInputText.value ? localInputText.value.length : 0)))
 </script>
 
 <style scoped>
@@ -187,5 +212,9 @@ const submit = () => emit('submit')//submit定义在Home.vue
   background: none;
   border: none;
   cursor: pointer;
+}
+.char-hint {
+  text-align: right;
+  color: #666;
 }
 </style>

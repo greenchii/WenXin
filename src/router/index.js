@@ -1,15 +1,17 @@
 import { createRouter, createWebHistory } from 'vue-router'  
-import Home from '../views/Home.vue'
-import Question from '../views/Question.vue'
-import Login from '../views/Login.vue'
-import ProfileEdit from '../views/ProfileEdit.vue'
-import Meeting from '../views/categories/Meeting.vue'    
-import Life from '../views/categories/Life.vue'          
-import Finance from '../views/categories/Finance.vue'    
-import Calendar from '@/components/second/Calendar.vue' 
-import TrendAnalysis from '@/components/second/TrendAnalysis.vue'  // 收支趋势分析组件
-import CostAnalysis from '@/components/second/CostAnalysis.vue'    // 成本占比看板组件
-import CashFlowForecast from '@/components/second/CashFlowForecast.vue'  // 现金流预测组件
+
+// 所有组件均采用异步导入方式
+const Home = () => import('../views/Home.vue')
+const Question = () => import('../views/Question.vue')
+const Login = () => import('../views/Login.vue')
+const ProfileEdit = () => import('../views/ProfileEdit.vue')
+const Meeting = () => import('../views/categories/Meeting.vue')    
+const Life = () => import('../views/categories/Life.vue')          
+const Finance = () => import('../views/categories/Finance.vue')    
+const Calendar = () => import('@/components/second/Calendar.vue') 
+const TrendAnalysis = () => import('@/components/second/TrendAnalysis.vue')
+const CostAnalysis = () => import('@/components/second/CostAnalysis.vue')
+const CashFlowForecast = () => import('@/components/second/CashFlowForecast.vue')
 
 const routes = [
   {
@@ -20,14 +22,12 @@ const routes = [
       requiresAuth: false  
     }
   },
-
   {
-    path: '/question/:id', // 点击侧边栏问题会跳转到这里
+    path: '/question/:id',
     name: 'Question',
     component: Question,
     meta: { requiresAuth: true }
   },
-
   {
     path: '/login',
     name: 'Login',
@@ -72,41 +72,41 @@ const routes = [
     },
   },
   {
-        path: '/calendar',
-        name: 'FinanceCalendar',  // 盈亏日历路由名称
-        component: Calendar,
-        meta: {
-          requiresAuth: true,
-          tag: '财务'
-        }
-      },
-      {
-        path: '/trend',
-        name: 'TrendAnalysis',  // 收支趋势分析路由名称
-        component: TrendAnalysis,
-        meta: {
-          requiresAuth: true,
-          tag: '财务'
-        }
-      },
-      {
-        path: '/cost',
-        name: 'CostAnalysis',  // 成本占比看板路由名称
-        component: CostAnalysis,
-        meta: {
-          requiresAuth: true,
-          tag: '财务'
-        }
-      },
-      {
-        path: '/cashflow',
-        name: 'CashFlowForecast',  // 现金流预测路由名称
-        component: CashFlowForecast,
-        meta: {
-          requiresAuth: true,
-          tag: '财务'
-        }
-      }
+    path: '/calendar',
+    name: 'FinanceCalendar',
+    component: Calendar,
+    meta: {
+      requiresAuth: true,
+      tag: '财务'
+    }
+  },
+  {
+    path: '/trend',
+    name: 'TrendAnalysis',
+    component: TrendAnalysis,
+    meta: {
+      requiresAuth: true,
+      tag: '财务'
+    }
+  },
+  {
+    path: '/cost',
+    name: 'CostAnalysis',
+    component: CostAnalysis,
+    meta: {
+      requiresAuth: true,
+      tag: '财务'
+    }
+  },
+  {
+    path: '/cashflow',
+    name: 'CashFlowForecast',
+    component: CashFlowForecast,
+    meta: {
+      requiresAuth: true,
+      tag: '财务'
+    }
+  }
 ]
 
 const router = createRouter({
@@ -115,3 +115,4 @@ const router = createRouter({
 })
 
 export default router
+

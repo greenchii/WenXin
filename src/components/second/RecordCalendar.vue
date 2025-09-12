@@ -88,10 +88,26 @@ const props = defineProps({
   category: {
     type: String,
     required: true,
+    // 接受中文或英文，保持兼容
     validator: (value) => {
-      return ['finance', 'meeting', 'life'].includes(value)
+      const allowed = ['finance', 'meeting', 'life', '财务', '会议', '生活']
+      return allowed.includes((value || '').toString())
     }
   }
+})
+
+// 规范化分类为英文 code（组件内部统一使用）
+const normalizedCategory = computed(() => {
+  const v = (props.category || '').toString().trim()
+  const map = {
+    '会议': 'meeting',
+    'meeting': 'meeting',
+    '生活': 'life',
+    'life': 'life',
+    '财务': 'finance',
+    'finance': 'finance'
+  }
+  return map[v] ?? 'life'
 })
 
 // 基准日期（控制显示的3个月范围）
@@ -130,11 +146,10 @@ function generateMonthData(date) {
     const isToday = current.toDateString() === new Date().toDateString()
     const isOtherMonth = current.getMonth() !== month
 
-    // 统计当前分类的记录数量
+    // 统计当前分类的记录数量（只根据 timestamp 匹配日期）
     const recordCount = props.records.reduce((count, record) => {
       const recordDate = new Date(record.timestamp)
       const recordDateStr = `${recordDate.getFullYear()}-${(recordDate.getMonth() + 1).toString().padStart(2, '0')}-${recordDate.getDate().toString().padStart(2, '0')}`
-      
       return recordDateStr === dateStr ? count + 1 : count
     }, 0)
 
@@ -160,11 +175,16 @@ const formatMonthRange = computed(() => {
   return `${start.getFullYear()}年${start.getMonth() + 1}月 - ${end.getFullYear()}年${end.getMonth() + 1}月`
 })
 
-// 监听记录变化，自动更新日历统计
-watch(() => props.records, () => {
-  displayedMonths.value = [...displayedMonths.value]
+// 监听记录变化，**不再写入 computed 的 .value**，computed 会自动重新计算。
+// 这里保留 watch 以便你将来需要触发动画或额外副作用时使用。
+watch(() => props.records, (newVal, oldVal) => {
+  // computed displayedMonths 会自动基于 baseDate/props.records 重新计算
+  // 如果你想显式触发重绘，可通过 baseDate.value = new Date(baseDate.value) 强制更新
+  // 示例（通常不需要）：
+  // baseDate.value = new Date(baseDate.value)
 }, { deep: true })
 </script>
+
 
 <style scoped>
 .record-calendar {
