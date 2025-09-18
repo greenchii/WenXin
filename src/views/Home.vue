@@ -75,20 +75,34 @@ const submitInput = async () => {
     const userInputContent = inputText.value.trim()
     const currentTime = dayjs().format()
     
-    // 创建新对话
+    // 创建新对话（会在 historyStore 中创建，并返回 convId）
     const convId = await historyStore.createConversation(
       userInputContent.slice(0, 30) || '新对话'
     )
 
-    // 即时显示用户输入，不必等待API返回
+    // 立即把用户消息加入本地 UI 列表（附带 convId，便于 MessageActions 使用）
     const userMessage = {
+      id: `local-${Date.now()}`,
       role: 'user',
       isUser: true,
       type: askType.value,
       content: userInputContent,
-      timestamp: currentTime
+      timestamp: currentTime,
+      convId // <-- 附带 conversation id
     }
     conversationHistory.value.push(userMessage)
+
+    // 同步把这条消息写入 historyStore 的 conversation.messages（防止 MessageActions 在 Home 找不到上下文）
+    try {
+      historyStore.addMessage(convId, {
+        id: userMessage.id,
+        role: 'user',
+        content: userMessage.content,
+        created_at: userMessage.timestamp
+      })
+    } catch (e) {
+      console.warn('addMessage to historyStore failed:', e)
+    }
 
     if (askType.value === 'record') {
       // 上传文件/文本
@@ -107,19 +121,34 @@ const submitInput = async () => {
         })
       }
 
-      // 记录类型添加成功提示
-      conversationHistory.value.push({
+      // 记录类型添加成功提示（本地显示）
+      const assistantMsg = {
+        id: `local-assistant-${Date.now()}`,
         role: 'assistant',
         isUser: false,
         type: 'reply',
         content: '记录已保存成功',
-        timestamp: dayjs().format()
-      })
+        timestamp: dayjs().format(),
+        convId
+      }
+      conversationHistory.value.push(assistantMsg)
 
-      // 刷新对话详情
+      // 把 assistant 提示也写入 historyStore（便于后续配对）
+      try {
+        historyStore.addMessage(convId, {
+          id: assistantMsg.id,
+          role: 'assistant',
+          content: assistantMsg.content,
+          created_at: assistantMsg.timestamp
+        })
+      } catch (e) {
+        console.warn('add assistant message to historyStore failed:', e)
+      }
+
+      // 刷新对话详情（从后端拉取包含 info_items 等）
       await historyStore.fetchConversationDetail(convId)
     } else if (askType.value === 'consult') {
-      // 发送消息并获取 AI 回复
+      // 发送消息并获取 AI 回复（sendMessage 内部会在 store 中添加 user 消息并 fetch detail）
       await historyStore.sendMessage(convId, userInputContent)
       
       // 刷新本地 UI（显示最新对话内容，包括AI回复）
@@ -129,7 +158,9 @@ const submitInput = async () => {
          isUser: m.role === 'user',
          type: m.role === 'user' ? askType.value : 'reply',
          content: m.content,
-         timestamp: dayjs(m.created_at).format()
+         timestamp: dayjs(m.created_at).format(),
+         id: m.id,
+         convId // attach convId so MessageActions can use it
       }))
     }
 
@@ -154,6 +185,7 @@ const removeRecord = (id) => {
 </script>
 
 <style src="@/style/Home.css"></style>
+
 
 
 

@@ -1,105 +1,111 @@
 :root { 
-    --accent: #4c6ef5;
-    --muted: #98a0b3;
-    --border: #e6e9ef;
-    --card: #ffffff;
-    --user-bg: #d4d6dc;
-    --assistant-bg: #c7dff1;
-    --text: #222;
-    --bubble-radius: 12px;
-    --max-width: 760px;
+  --accent: #4c6ef5;
+  --muted: #98a0b3;
+  --border: #e6e9ef;
+  --card: #ffffff;
+  --user-bg: #d4d6dc;
+  --assistant-bg: #c7dff1;
+  --text: #222;
+  --bubble-radius: 12px;
+  --max-width: 760px;
+  --back-border-width: 1px;
 }
 
 .question-detail {
-    max-width: var(--max-width);
-    margin: 0 auto !important;
-    padding: 20px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    color: var(--text);
-    box-sizing: border-box;
-    width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto !important;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: var(--text);
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .header { display:flex; align-items:center; gap:15px; margin-bottom:20px; }
 
+/* 返回按钮：加上蓝紫色实线边框（使用 --accent） */
 .back-btn {
-    display: flex;            /* 横向排列图标和文字 */
-    align-items: center;      /* 垂直居中 */
-    gap: 6px;                 /* 图标和文字间距 */
-    background: none;
-    border: none;
-    color: var(--accent);     /* 箭头颜色跟文字一致 */
-    cursor: pointer;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 14px;
-    white-space: nowrap;      /* 防止文字换行成竖排 */
-    writing-mode: horizontal-tb; /* 强制横排 */
-  }
-  
-  .back-btn:hover {
-    background-color: rgba(76, 110, 245, 0.06);
-  }
-  
-  .back-btn .icon {
-    width: 16px;       /* 给 SVG 明确宽高 */
-    height: 16px;
-    flex-shrink: 0;    /* 防止被压缩消失 */
-  }
-  
+  display: flex;            /* 横向排列图标和文字 */
+  align-items: center;      /* 垂直居中 */
+  gap: 8px;                 /* 图标和文字间距 */
+  background: white;
+  border: var(--back-border-width) solid var(--accent);   /* <- 实线边框 */
+  color: var(--accent);     /* 箭头颜色跟文字一致 */
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  white-space: nowrap;      /* 防止文字换行成竖排 */
+  writing-mode: horizontal-tb; /* 强制横排 */
+  box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+  transition: background-color .12s ease, transform .06s ease;
+}
+
+.back-btn:hover {
+  background-color: rgba(76, 110, 245, 0.06);
+  transform: translateY(-1px);
+}
+
+.back-btn .icon {
+  width: 16px;       /* 给 SVG 明确宽高 */
+  height: 16px;
+  flex-shrink: 0;    /* 防止被压缩消失 */
+  display:inline-block;
+  vertical-align: middle;
+}
 
 .conversation-container {
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 18px;
-    background-color: var(--card);
-    margin-bottom: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  background-color: var(--card);
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 /* 每条消息行 */
 .message-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    min-width: 0; /* 关键：允许内部元素 shrink */
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0; /* 关键：允许内部元素 shrink */
 }
 
 /* 头像 */
 .avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 8px;
-    background-size: cover;
-    background-position: center;
-    flex-shrink: 0;
-    box-shadow: 0 1px 2px rgba(16,24,40,0.04);
-  }
-  
-  .avatar.assistant {
-    background-image: url('/favicon.png');
-    background-color: transparent;
-  }
-  
-  /* 用户头像 SVG */
-  .avatar.user {
-    background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%23e6e9ef'/%3E%3Cg fill='%23111'%3E%3Ccircle cx='12' cy='8' r='3'/%3E%3Cpath d='M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6H4z'/%3E%3C/g%3E%3C/svg%3E");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-  }
-  
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+}
+
+.avatar.assistant {
+  background-image: url('/favicon.png');
+  background-color: transparent;
+}
+
+/* 用户头像 SVG */
+.avatar.user {
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%23e6e9ef'/%3E%3Cg fill='%23111'%3E%3Ccircle cx='12' cy='8' r='3'/%3E%3Cpath d='M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6H4z'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 
 /* 内容包装：不强制占满，短文本宽度跟内容一致，长文本超过最大宽度才换行 */
 .message-block {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    max-width: calc(100% - 68px);
-    min-width: 0;
-    width: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: calc(100% - 68px);
+  min-width: 0;
+  width: auto;
 }
 
 /* user 行右对齐短气泡（靠右） */
@@ -115,27 +121,27 @@
 
 /* 气泡：inline-block 让宽度随内容自适应，max-width 控制换行阈值 */
 .bubble {
-    padding: 12px 14px;
-    border-radius: var(--bubble-radius);
-    box-shadow: 0 1px 2px rgba(16,24,40,0.04);
-    line-height: 1.6;
-    white-space: pre-wrap;        /* 保留换行但允许断行 */
-    overflow-wrap: anywhere;      /* 在必要处换行（长串） */
-    word-break: normal;           /* 不按字符强行断行 */
-    max-width: 70ch;              /* 基于字符宽度控制换行（稳定） */
-    background-color: transparent;
-    display: inline-block;        /* 关键：短文本不占满整行 */
-    vertical-align: top;
-    min-width: 0;
+  padding: 12px 14px;
+  border-radius: var(--bubble-radius);
+  box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+  line-height: 1.6;
+  white-space: pre-wrap;        /* 保留换行但允许断行 */
+  overflow-wrap: anywhere;      /* 在必要处换行（长串） */
+  word-break: normal;           /* 不按字符强行断行 */
+  max-width: 70ch;              /* 基于字符宽度控制换行（稳定） */
+  background-color: transparent;
+  display: inline-block;        /* 关键：短文本不占满整行 */
+  vertical-align: top;
+  min-width: 0;
 }
 
 /* 内部消息文本：阻止额外换行规则干扰 */
 .message-content {
-    display: inline-block;
-    white-space: pre-wrap;
-    word-break: normal;
-    overflow-wrap: break-word;
-    max-width: 100%;
+  display: inline-block;
+  white-space: pre-wrap;
+  word-break: normal;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 /* 颜色样式 */
@@ -150,13 +156,70 @@
 .empty-state { text-align:center; padding:50px 0; color:var(--muted); margin:0 auto; max-width:600px; }
 .new-conversation-btn { margin-top:12px; padding:8px 16px; background-color:var(--accent); color:white; border:none; border-radius:6px; cursor:pointer; }
 
-.follow-up { display:flex; gap:10px; align-items:center; max-width:var(--max-width); margin:0 auto; }
-.follow-up textarea { flex:1; padding:12px; border:1px solid var(--border); border-radius:8px; min-height:84px; resize:vertical; font-size:14px; min-width:0; }
-.send-btn { padding:8px 18px; background-color:var(--accent); color:white; border:none; border-radius:8px; cursor:pointer; }
-
-@media (max-width:640px) {
-  .bubble { max-width: 85ch; padding:10px 12px; }
-  .avatar { width:40px; height:40px; }
+/* -------- 追问区域（改动） -------- */
+.follow-up {
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  max-width:var(--max-width);
+  margin:0 auto;
 }
+
+/* 文本框 */
+.follow-up textarea {
+  flex:1;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  min-height:84px;
+  resize:vertical;
+  font-size:14px;
+  min-width:0;
+}
+
+/* 右侧操作区：竖直排列（计数在上，发送按钮在下） */
+.follow-actions {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  justify-content:flex-start;
+  width:170px;          /* 固定宽度，保证按钮拉长且对齐 */
+  min-width:120px;
+}
+
+/* 计数字体略小并居中 */
+.follow-actions .remaining {
+  font-size:13px;
+  color:var(--muted);
+  text-align:center;
+}
+
+/* 发送按钮：变长一些，视觉更显眼 */
+.send-btn {
+  width:100%;
+  padding:12px 18px;
+  background-color:var(--accent);
+  color:white;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+  box-shadow: 0 4px 10px rgba(76,110,245,0.12);
+  transition: transform .08s ease, box-shadow .12s ease;
+}
+
+.send-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px rgba(76,110,245,0.12); }
+
+/* 响应式：窄屏时将操作区放到下方并拉伸按钮宽度 */
+@media (max-width:640px) {
+.follow-up { flex-direction: column; gap:10px; }
+.follow-actions { width:100%; flex-direction:row; justify-content:space-between; align-items:center; gap:10px; }
+.follow-actions .remaining { text-align:left; }
+.send-btn { width:140px; }
+.bubble { max-width: 85ch; padding:10px 12px; }
+.avatar { width:40px; height:40px; }
+}
+
 
 

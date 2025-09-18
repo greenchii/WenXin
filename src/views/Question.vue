@@ -67,8 +67,10 @@
         @keydown.enter.exact.prevent="sendFollowUp"
         :maxlength="MAX_CHARS"
       ></textarea>
+
+      <!-- follow-actions: 竖直堆叠（计数在上，发送按钮在下）-->
       <div class="follow-actions">
-        <small>{{ remainingChars }} 字可输入</small>
+        <small class="remaining">{{ remainingChars }} 字可输入</small>
         <button @click="sendFollowUp" class="send-btn">发送</button>
       </div>
     </div>
@@ -190,6 +192,7 @@ watch(() => conversationId.value, () => { loadConversation() })
 </script>
 
 <style src="../style/Question.css" ></style>
+
 
 
 

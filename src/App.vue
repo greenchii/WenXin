@@ -194,7 +194,7 @@
       <main class="main-content">
         <router-view/>
 
-        <footer class="footer">© 问心 · 本地演示版</footer>
+        <!--测试： <footer class="footer">© 问心 · 本地演示版</footer> -->
       </main>
     </div>
   </div>
@@ -648,6 +648,7 @@ router-view {
 }
 
 /* 页脚固定在主内容底部 */
+/*
 .footer {
   height:44px;
   display:flex;
@@ -659,6 +660,7 @@ router-view {
   padding: 0 20px;
   background: linear-gradient(0deg, rgba(255,255,255,0.6), transparent);
 }
+*/
 
 /* 小屏幕调整 */
 @media (max-width: 900px) {
