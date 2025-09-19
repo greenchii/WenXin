@@ -21,11 +21,15 @@
   width: 100%;
 }
 
-.header { display:flex; align-items:center; gap:15px; margin-bottom:20px; }
+.header { display:flex; align-items:center;margin-bottom: 8px;  }
 
-/* 返回按钮：加上蓝紫色实线边框（使用 --accent） */
+.header h1 {
+  flex: 1;  /* 占据剩余空间，把按钮推到最右边 */
+}
+
+/* 返回按钮 */
 .back-btn {
-  display: flex;            /* 横向排列图标和文字 */
+  display: flex; /* 横向排列图标和文字 */
   align-items: center;      /* 垂直居中 */
   gap: 8px;                 /* 图标和文字间距 */
   background: white;
@@ -173,11 +177,11 @@
   border-radius:8px;
   min-height:84px;
   resize:vertical;
+  min-height: 45px;
   font-size:14px;
   min-width:0;
 }
 
-/* 右侧操作区：竖直排列（计数在上，发送按钮在下） */
 .follow-actions {
   display:flex;
   flex-direction:column;

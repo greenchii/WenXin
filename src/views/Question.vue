@@ -1,13 +1,13 @@
 <template>
   <div class="question-detail">
     <div class="header">
+      <h1>{{ conversation?.title || '对话详情' }}</h1>
       <button class="back-btn" @click="goToHome">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor"/>
         </svg>
         返回首页
       </button>
-      <h1>{{ conversation?.title || '对话详情' }}</h1>
     </div>
 
     <div class="loading" v-if="isLoading">
@@ -70,8 +70,8 @@
 
       <!-- follow-actions: 竖直堆叠（计数在上，发送按钮在下）-->
       <div class="follow-actions">
-        <small class="remaining">{{ remainingChars }} 字可输入</small>
         <button @click="sendFollowUp" class="send-btn">发送</button>
+        <small class="remaining">{{ remainingChars }} 字可输入</small>
       </div>
     </div>
   </div>
