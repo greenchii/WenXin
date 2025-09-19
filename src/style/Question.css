@@ -12,6 +12,9 @@
 }
 
 .question-detail {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* 占满整个视口高度 */
   max-width: var(--max-width);
   margin: 0 auto !important;
   padding: 20px;
@@ -21,7 +24,16 @@
   width: 100%;
 }
 
-.header { display:flex; align-items:center;margin-bottom: 8px;  }
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  position: sticky; /* 粘性定位，滚动时固定 */
+  top: 0;           /* 固定在视口顶部 */
+  background-color: white; /* 背景覆盖，避免下方内容透过来 */
+  z-index: 10;      /* 保证层级高于消息区 */
+  padding-top: 10px;
+}
 
 .header h1 {
   flex: 1;  /* 占据剩余空间，把按钮推到最右边 */
@@ -59,14 +71,16 @@
 }
 
 .conversation-container {
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: 12px;
   padding: 18px;
   background-color: var(--card);
-  margin-bottom: 18px;
+  flex-grow: 1;         /* 填充头部和底部之间的剩余空间 */
+  overflow-y: auto;     /* 内部消息超出时纵向滚动 */
   display: flex;
   flex-direction: column;
   gap: 16px;
+  max-height: calc(100vh - 220px); /* 减去头部、底部高度（可根据实际调整） */
 }
 
 /* 每条消息行 */
@@ -162,18 +176,25 @@
 
 /* -------- 追问区域（改动） -------- */
 .follow-up {
-  display:flex;
-  gap:12px;
-  align-items:flex-start;
-  max-width:var(--max-width);
-  margin:0 auto;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  max-width: var(--max-width);
+  margin: 18px auto 0;
+  position: sticky; /* 粘性定位，滚动时固定 */
+  bottom: 20px;     /* 与页面整体 padding 对应，固定在视口底部附近 */
+  background-color: white; /* 背景覆盖，避免上方内容透过来 */
+  padding-top: 10px;
+  z-index: 10;      /* 保证层级高于消息区 */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* 文本框 */
 .follow-up textarea {
   flex:1;
   padding:12px;
-  border:1px solid var(--border);
+  border:2px solid var(--border);
   border-radius:8px;
   min-height:84px;
   resize:vertical;
@@ -183,46 +204,55 @@
 }
 
 .follow-actions {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:10px;
-  justify-content:flex-start;
-  width:170px;          /* 固定宽度，保证按钮拉长且对齐 */
-  min-width:120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-start;
+  width: 170px; /* 固定操作区宽度，让按钮拉伸更协调 */
+  min-width: 120px;
+  box-sizing: border-box;
 }
 
-/* 计数字体略小并居中 */
-.follow-actions .remaining {
-  font-size:13px;
-  color:var(--muted);
-  text-align:center;
-}
-
-/* 发送按钮：变长一些，视觉更显眼 */
 .send-btn {
-  width:100%;
-  padding:12px 18px;
-  background-color:var(--accent);
-  color:white;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:600;
-  box-shadow: 0 4px 10px rgba(76,110,245,0.12);
+  width: 100%; /* 拉伸填满操作区宽度 */
+  padding: 12px 18px;
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(76, 110, 245, 0.12);
   transition: transform .08s ease, box-shadow .12s ease;
+}
+
+.follow-actions .remaining {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
 }
 
 .send-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px rgba(76,110,245,0.12); }
 
-/* 响应式：窄屏时将操作区放到下方并拉伸按钮宽度 */
-@media (max-width:640px) {
-.follow-up { flex-direction: column; gap:10px; }
-.follow-actions { width:100%; flex-direction:row; justify-content:space-between; align-items:center; gap:10px; }
-.follow-actions .remaining { text-align:left; }
-.send-btn { width:140px; }
-.bubble { max-width: 85ch; padding:10px 12px; }
-.avatar { width:40px; height:40px; }
+@media (max-width: 640px) {
+  .follow-up {
+    flex-direction: column; /* 垂直排列 */
+    gap: 10px;
+  }
+  .follow-actions {
+    width: 100%;
+    flex-direction: row; /* 横向排列按钮和字数 */
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .follow-actions .remaining {
+    text-align: left;
+  }
+  .send-btn {
+    width: 140px; /* 按钮固定宽度 */
+  }
 }
 
 
