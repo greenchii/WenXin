@@ -31,6 +31,7 @@
                 </svg>
                 盈亏日历
               </button>
+
               <button 
                 class="visual-btn" 
                 @click="goToRoute('/trend')"
@@ -40,6 +41,7 @@
                 </svg>
                 收支趋势分析
               </button>
+              
               <button 
                 class="visual-btn" 
                 @click="goToRoute('/cost')"
