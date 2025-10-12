@@ -10,7 +10,8 @@
       </button>
     </div>
 
-    <div class="loading" v-if="isLoading">
+    <!-- 如果没有 conversation 且正在加载，保持旧的 loading 文案（首屏加载） -->
+    <div class="loading" v-if="!conversation && isLoading">
       <p>加载对话详情中...</p>
     </div>
 
@@ -19,7 +20,8 @@
       <button @click="loadConversation()">重试</button>
     </div>
 
-    <div class="conversation-container" v-if="conversation && !isLoading && !error">
+    <!-- 保持对话可见（即使正在加载也不遮罩） -->
+    <div class="conversation-container" v-if="conversation && !error">
       <div
         class="message-row"
         v-for="(item, index) in displayedMessages"
@@ -43,11 +45,23 @@
             </div>
           </div>
 
-          <!-- 新增：复制 & 保存 操作按钮（显示在时间上方、靠右） -->
+          <!-- 复制 & 保存 操作按钮 -->
           <MessageActions :message="item" :conv-id="conversationId" />
 
           <div class="time">
             {{ formatTime(item.created_at) }}
+          </div>
+        </div>
+      </div>
+
+      <!-- 如果正在加载且最后一条为 assistant（或没有最后条），在对话底部显示 LoadingDots（不会覆盖已有内容） -->
+      <div v-if="isLoading" class="loading-row">
+        <div class="message-row assistant loading-indicator">
+          <div class="avatar assistant" title="问心助手"></div>
+          <div class="message-block">
+            <div class="bubble assistant small">
+              <LoadingDots />
+            </div>
           </div>
         </div>
       </div>
@@ -60,7 +74,7 @@
       </button>
     </div>
 
-    <div class="follow-up" v-if="conversation && !isLoading && !error">
+    <div class="follow-up" v-if="conversation && !error">
       <textarea
         v-model="followUpText"
         placeholder="输入您的追问...（不超过150字，按 Enter 发送，可 Shift+Enter 换行）"
@@ -82,7 +96,8 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHistoryStore } from '@/stores/history.js'
 import dayjs from 'dayjs'
-import MessageActions from '@/components/MessageActions.vue'  // <-- 新增 import
+import MessageActions from '@/components/MessageActions.vue'
+import LoadingDots from '@/components/second/LoadingDots.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -128,7 +143,6 @@ const isSaveHint = (message) => {
   return /保存|是否需要保存|需要保存/.test(text)
 }
 
-// 安全转义并保守处理空格：不要生成长串不可换行的 &nbsp;
 function escapeHtml(str) {
   if (str == null) return ''
   return str.toString()
@@ -139,10 +153,8 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;')
 }
 
-// 重要：只做最保守的空格处理（避免长串 &nbsp;），并把换行转为 <br/>
 function formatContent(raw) {
   const s = escapeHtml(raw)
-  // 将两个连续空格 -> ' &nbsp;' （避免大量不可断行空格）
   const withSpaces = s.replace(/ {2,}/g, (m) => {
     const extra = Math.min(m.length - 1, 2)
     return ' ' + '&nbsp;'.repeat(extra)
@@ -171,6 +183,7 @@ async function sendFollowUp() {
   if (!text || !conversationId.value) return
   if (text.length > MAX_CHARS) { alert(`输入超过 ${MAX_CHARS} 字，请缩短后再发送`); return }
   try {
+    // 为了更好的 UX：不要把 isLoading 用作整体页面遮罩，使用局部加载指示（此处仍设置 isLoading）
     isLoading.value = true
     await historyStore.sendMessage(conversationId.value, text)
     followUpText.value = ''
@@ -192,6 +205,7 @@ watch(() => conversationId.value, () => { loadConversation() })
 </script>
 
 <style src="../style/Question.css" ></style>
+
 
 
 

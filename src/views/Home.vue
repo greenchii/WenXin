@@ -10,6 +10,7 @@
         :askType="askType"
         @update:askType="askType = $event"
         :conversationHistory="conversationHistory"
+        :conversationId="currentConvId"
         @submit="submitInput"
         :avatarConfig="avatarConfig"
       />
@@ -26,7 +27,7 @@
 
 <script setup>
 import '@/style/Home.css'
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import dayjs from 'dayjs'
 import { useUserStore } from '@/stores/user'
 import { useHistoryStore } from '@/stores/history'
@@ -38,13 +39,30 @@ const userStore = useUserStore()
 const historyStore = useHistoryStore()
 const isUser = !!userStore.token
 
-// 响应式变量定义（移除了可能的TypeScript类型注释）
+// 响应式变量定义
 const inputText = ref('')
 const files = ref([])
 const askType = ref('record')
-const conversationHistory = ref([])
 const selectedTag = ref(null)
 const previewItems = ref([])
+
+// 会话 id：来自 historyStore.currentConversationId（可为 null）
+const currentConvId = computed(() => historyStore.currentConversationId || null)
+
+// 本地显示的 conversationHistory（用来渲染 Home 的对话框）——从 store 派生
+const conversationHistory = computed(() => {
+  const conv = historyStore.getConversationById(currentConvId.value)
+  if (!conv) return []
+  const raw = Array.isArray(conv.messages) ? conv.messages : (Array.isArray(conv.info_items) ? conv.info_items : [])
+  return raw.map(m => ({
+    id: m.id,
+    role: (m.role || 'assistant'),
+    isUser: (m.role === 'user'),
+    type: m.role === 'user' ? 'user' : 'consult',
+    content: m.content || m.description || m.title || '',
+    timestamp: dayjs(m.created_at || m.created_at).format()
+  }))
+})
 
 const avatarConfig = ref({
   user: {
@@ -57,54 +75,41 @@ const avatarConfig = ref({
   }
 })
 
+// 处理提交：如果已存在 currentConversationId，则在该会话追加；否则创建（仅在首次使用或用户点击新会话时）
 const submitInput = async () => {
   if (!isUser) {
-    conversationHistory.value.push({
+    // 若未登录，确保有会话并显示提示
+    const tmpConv = historyStore.currentConversationId || await historyStore.createConversation('新对话')
+    historyStore.addMessage(tmpConv, {
+      id: `local-${Date.now()}`,
       role: 'assistant',
-      isUser: false,
-      type: 'error',
       content: '请先登录再提交信息',
-      timestamp: dayjs().format()
+      created_at: dayjs().format()
     })
     return
   }
   if (!inputText.value.trim() && files.value.length === 0) return
 
   try {
-    // 保存用户输入内容，用于即时显示
     const userInputContent = inputText.value.trim()
     const currentTime = dayjs().format()
-    
-    // 创建新对话（会在 historyStore 中创建，并返回 convId）
-    const convId = await historyStore.createConversation(
-      userInputContent.slice(0, 30) || '新对话'
-    )
 
-    // 立即把用户消息加入本地 UI 列表（附带 convId，便于 MessageActions 使用）
-    const userMessage = {
-      id: `local-${Date.now()}`,
-      role: 'user',
-      isUser: true,
-      type: askType.value,
-      content: userInputContent,
-      timestamp: currentTime,
-      convId // <-- 附带 conversation id
-    }
-    conversationHistory.value.push(userMessage)
-
-    // 同步把这条消息写入 historyStore 的 conversation.messages（防止 MessageActions 在 Home 找不到上下文）
-    try {
-      historyStore.addMessage(convId, {
-        id: userMessage.id,
-        role: 'user',
-        content: userMessage.content,
-        created_at: userMessage.timestamp
-      })
-    } catch (e) {
-      console.warn('addMessage to historyStore failed:', e)
+    // 确保存在 active conversation（不会重复 select）
+    let convId = historyStore.currentConversationId
+    if (!convId) {
+      convId = await historyStore.getOrCreateActiveConversation()
+      // getOrCreateActiveConversation 已经会把 currentConversationId 设好
     }
 
     if (askType.value === 'record') {
+      // 对于记录类型：我们先把本地用户输入写入（保留原有逻辑）
+      historyStore.addMessage(convId, {
+        id: `local-${Date.now()}`,
+        role: 'user',
+        content: userInputContent,
+        created_at: currentTime
+      })
+
       // 上传文件/文本
       const formData = new FormData()
       formData.append('conversation_id', convId)
@@ -121,37 +126,23 @@ const submitInput = async () => {
         })
       }
 
-      // 记录类型添加成功提示（本地显示）
-      const assistantMsg = {
+      // assistant 本地提示
+      historyStore.addMessage(convId, {
         id: `local-assistant-${Date.now()}`,
         role: 'assistant',
-        isUser: false,
-        type: 'reply',
         content: '记录已保存成功',
-        timestamp: dayjs().format(),
-        convId
-      }
-      conversationHistory.value.push(assistantMsg)
-
-      // 把 assistant 提示也写入 historyStore（便于后续配对）
-      try {
-        historyStore.addMessage(convId, {
-          id: assistantMsg.id,
-          role: 'assistant',
-          content: assistantMsg.content,
-          created_at: assistantMsg.timestamp
-        })
-      } catch (e) {
-        console.warn('add assistant message to historyStore failed:', e)
-      }
+        created_at: dayjs().format()
+      })
 
       // 刷新对话详情（从后端拉取包含 info_items 等）
       await historyStore.fetchConversationDetail(convId)
+
     } else if (askType.value === 'consult') {
-      // 发送消息并获取 AI 回复（sendMessage 内部会在 store 中添加 user 消息并 fetch detail）
+      // 对于咨询（追问）：不要在这里重复 addMessage，
+      // 由 store.sendMessage 负责本地加入 user 消息并触发后续 fetch。
       await historyStore.sendMessage(convId, userInputContent)
-      
-      // 刷新本地 UI（显示最新对话内容，包括AI回复）
+
+      // sendMessage 内部会 fetchConversationDetail，因此直接从 store 获取最新 messages 来更新本地显示（如果需要）
       const rawMessages = historyStore.getConversationById(convId)?.messages || []
       conversationHistory.value = rawMessages.map(m => ({
          role: m.role,
@@ -160,7 +151,7 @@ const submitInput = async () => {
          content: m.content,
          timestamp: dayjs(m.created_at).format(),
          id: m.id,
-         convId // attach convId so MessageActions can use it
+         convId
       }))
     }
 
@@ -169,22 +160,39 @@ const submitInput = async () => {
     files.value = []
   } catch (e) {
     console.error('提交失败：', e)
-    conversationHistory.value.push({
+    // 若发生错误，尽量向当前会话推一个错误提示
+    const convId = historyStore.currentConversationId || await historyStore.getOrCreateActiveConversation()
+    historyStore.addMessage(convId, {
+      id: `local-error-${Date.now()}`,
       role: 'assistant',
-      isUser: false,
-      type: 'error',
       content: '提交失败，请稍后再试',
-      timestamp: dayjs().format()
+      created_at: dayjs().format()
     })
   }
 }
 
+// helper：移除右侧记录
 const removeRecord = (id) => {
   previewItems.value = previewItems.value.filter(item => item.id !== id)
 }
+
+// 当 App.vue 发出 new-conversation 事件时，切换 currentConversationId（确保主页使用到新的会话）
+onMounted(() => {
+  window.addEventListener('new-conversation', (e) => {
+    const newId = e?.detail?.convId
+    if (newId) {
+      historyStore.selectConversation(newId)
+    } else {
+      // 如果没有传 id，尝试选取最近
+      const recent = historyStore.recentConversations?.[0]?.id
+      if (recent) historyStore.selectConversation(recent)
+    }
+  })
+})
 </script>
 
 <style src="@/style/Home.css"></style>
+
 
 
 

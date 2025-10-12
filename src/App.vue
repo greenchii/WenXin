@@ -164,18 +164,19 @@
 
         <!-- 底部图标区域（预留空间） -->
         <div class="sidebar-footer" role="navigation" aria-label="Sidebar actions">
+          <!-- 统一为一个入口：未登录显示“登录”，已登录显示“个人信息” -->
           <button
             class="icon-btn"
-            @click="$router.push('/profile')"
-            v-if="isLoggedIn"
-            aria-label="个人信息"
+            @click="isLoggedIn ? $router.push('/profile') : $router.push('/login')"
+            aria-label="个人信息或登录"
           >
             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3 1.34-3 3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" fill="currentColor"/>
             </svg>
-            <span class="tooltip">个人信息</span>
+            <span class="tooltip">{{ isLoggedIn ? '个人信息' : '登录' }}</span>
           </button>
 
+          <!-- 仅当已登录时显示“退出登录” -->
           <button
             class="icon-btn logout-btn"
             @click="handleLogout"
@@ -193,8 +194,6 @@
       <!-- 主内容区域 -->
       <main class="main-content">
         <router-view/>
-
-        <!--测试： <footer class="footer">© 问心 · 本地演示版</footer> -->
       </main>
     </div>
   </div>
@@ -205,7 +204,6 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user.js'
 import { useHistoryStore } from '@/stores/history.js'
-import { createConversationService } from '@/api/conversation'
 
 // 路由
 const router = useRouter()
@@ -251,31 +249,28 @@ watch(isSidebarExpanded, (newVal) => {
   localStorage.setItem('sidebarExpanded', JSON.stringify(newVal))
 })
 
-
-
 // 跳转到问题详情
 function openQuestion(id) {
   if (!id) return
   router.push({ path: `/question/${id}` })
 }
 
-// 新对话
+// 新对话（变更：使用 historyStore.createConversation 并设置为当前会话）
 async function startNewConversation() {
   try {
-    // 调用API创建新对话
-    const response = await createConversationService()
-    const { conversation_id } = response.data
-    
-    // 导航到新对话
-    router.push('/').then(() => {
-      window.dispatchEvent(new Event('new-conversation'))
-    })
+    const newId = await historyStore.createConversation('新对话')
+    // 把它设置为当前会话（主页会使用 currentConversationId）
+    historyStore.selectConversation(newId)
+    // 触发一个事件，Home 页面可以监听（你已有使用 window.dispatchEvent 的地方）
+    window.dispatchEvent(new CustomEvent('new-conversation', { detail: { convId: newId } }))
+    // 导航到首页（如果不在首页）
+    if (router.currentRoute.value.path !== '/') {
+      router.push('/')
+    }
   } catch (error) {
     console.error('Failed to create new conversation:', error)
-    // 失败时仍导航到首页
-    router.push('/').then(() => {
-      window.dispatchEvent(new Event('new-conversation'))
-    })
+    window.dispatchEvent(new Event('new-conversation'))
+    router.push('/')
   }
 }
 

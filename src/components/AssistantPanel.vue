@@ -6,7 +6,8 @@
 
     <ConversationHistory
       :conversationHistory="conversationHistory"
-      :avatarConfig="avatarConfig" 
+      :avatarConfig="avatarConfig"
+      :conversationId="conversationId"
       @newQuestion="handleNewQuestion"
       @followUp="handleFollowUp"
     />
@@ -39,7 +40,8 @@ const props = defineProps({
       user: { src: '', alt: '用户头像' },
       assistant: { src: '', alt: '助手头像' }
     })
-  }
+  },
+  conversationId: { type: [String, Number, null], default: null }
 })
 
 const emit = defineEmits(['update:inputText', 'update:files', 'update:askType', 'submit'])
@@ -48,12 +50,15 @@ const submitInput = () => {
   emit('submit')
 }
 
-const handleNewQuestion = (question) => {
-  emit('update:inputText', question)
+const handleNewQuestion = () => {
+  // 在 Home 层面我们希望把输入清空为新问题触发
+  emit('update:inputText', '')
 }
 
-const handleFollowUp = (question) => {
-  emit('update:inputText', `${props.inputText} ${question}`.trim())
+const handleFollowUp = () => {
+  // 将 focus 放回输入（具体行为由 Home 控制）；这里触发一个默认行为：把输入保留
+  // 为兼容旧逻辑，触发 update:inputText 事件示例（不改变默认）
+  emit('update:inputText', '')
 }
 </script>
 
@@ -79,3 +84,4 @@ const handleFollowUp = (question) => {
   color: #333;
 }
 </style>
+

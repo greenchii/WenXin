@@ -8,17 +8,13 @@ import {
   sendMessageService
 } from '@/api/conversation'
 
-/**
- * History store
- * - 本地优先（localStorage）
- * - 若浏览器无本地数据，会用 loadTestData() 填充
- * - 若已登录，会尝试异步从后端拉取并合并
- */
 export const useHistoryStore = defineStore('history', {
   state: () => ({
     conversations: [],
     isLoading: false,
-    error: null
+    error: null,
+    // 当前选中（活动）对话 id（Home 使用该值作为“持续会话”）
+    currentConversationId: null
   }),
 
   getters: {
@@ -72,7 +68,6 @@ export const useHistoryStore = defineStore('history', {
   },
 
   actions: {
-    // ------------ 本地 storage 相关 ------------
     loadFromLocalStorage() {
       try {
         const saved = localStorage.getItem('consultHistory')
@@ -80,6 +75,9 @@ export const useHistoryStore = defineStore('history', {
           const parsed = JSON.parse(saved)
           if (Array.isArray(parsed)) {
             this.conversations = parsed
+            // 如果本地有会话，尽量恢复 currentConversationId（如果 localStorage 另存了）
+            const savedActive = localStorage.getItem('consultCurrentConversation')
+            if (savedActive) this.currentConversationId = savedActive
             return true
           } else {
             console.warn('consultHistory in localStorage is not an array, clearing it.')
@@ -96,12 +94,14 @@ export const useHistoryStore = defineStore('history', {
     saveToLocalStorage() {
       try {
         localStorage.setItem('consultHistory', JSON.stringify(this.conversations || []))
+        if (this.currentConversationId) {
+          localStorage.setItem('consultCurrentConversation', `${this.currentConversationId}`)
+        }
       } catch (e) {
         console.error('Failed to save history to localStorage', e)
       }
     },
 
-    // ---------- 测试/示例数据 ----------
     loadTestData() {
       const now = dayjs().format()
       const oneHourAgo = dayjs().subtract(1, 'hour').format()
@@ -331,16 +331,18 @@ export const useHistoryStore = defineStore('history', {
 // ---------- init: local-first，然后可选异步合并后端 ----------
 async init() {
   const userStore = useUserStore()
-
-  // 1) 先加载本地（若已有 localStorage 数据则直接显示）
   const hasLocal = this.loadFromLocalStorage()
 
-  // 2) 若没有本地数据，则写入示例数据
   if (!hasLocal && (!this.conversations || this.conversations.length === 0)) {
     this.loadTestData()
   }
 
-  // 3) 若用户已登录，异步尝试从后端拉取并合并
+  // 恢复 currentConversationId：优先本地保存值；否则选最近一条
+  if (!this.currentConversationId) {
+    const recent = (this.recentConversations && this.recentConversations[0]) ? this.recentConversations[0].id : null
+    if (recent) this.currentConversationId = recent
+  }
+
   if (userStore?.token) {
     this.isLoading = true
     try {
@@ -369,7 +371,6 @@ async init() {
               created_at: s.created_at || s.createdAt || (local?.created_at) || new Date().toISOString(),
               updated_at: s.updated_at || s.updatedAt || (local?.updated_at) || new Date().toISOString(),
               info_count: s.info_count ?? s.infoCount ?? (local?.info_count) ?? 0,
-              // 确保messages数组存在
               messages: Array.isArray(s.messages) ? s.messages : (local?.messages ? [...local.messages] : []),
               info_items: (local && Array.isArray(local.info_items)) ? local.info_items : (Array.isArray(s.info_items) ? s.info_items : [])
             }
@@ -389,6 +390,10 @@ async init() {
         })
 
         this.conversations = merged
+        // 若未设置 currentConversationId，选择第一个最近的
+        if (!this.currentConversationId && this.conversations.length) {
+          this.currentConversationId = this.conversations[0].id
+        }
         this.saveToLocalStorage()
       }
       this.error = null
@@ -403,7 +408,6 @@ async init() {
   }
 },
 
-// 创建对话（优先后端，失败或未登录时本地创建）
 async createConversation(title = '新对话') {
   const userStore = useUserStore()
   if (userStore?.token) {
@@ -416,7 +420,6 @@ async createConversation(title = '新对话') {
         created_at: payload.created_at || new Date().toISOString(),
         updated_at: payload.updated_at || payload.created_at || new Date().toISOString(),
         info_count: payload.info_count ?? 0,
-        // 初始化messages数组
         messages: [],
         info_items: payload.info_items || []
       }
@@ -433,7 +436,6 @@ async createConversation(title = '新对话') {
     created_at: dayjs().format(),
     updated_at: dayjs().format(),
     info_count: 0,
-    // 初始化messages数组
     messages: [],
     info_items: []
   }
@@ -442,12 +444,6 @@ async createConversation(title = '新对话') {
   return localConv.id
 },
 
-/**
- * 从后端拉取单个对话详情（包括 messages 与 info_items）
- * - 会按 created_at 升序排列 messages
- * - messages 超过 20 条时仅保留最近 20 条（作为上下文）
- * - 合并到本地 conversations（存在则更新，不存在则插入）
- */
 async fetchConversationDetail(convId) {
   if (!convId) throw new Error('conversation id required')
   this.isLoading = true
@@ -456,13 +452,11 @@ async fetchConversationDetail(convId) {
     const payload = (res && res.data && !Array.isArray(res.data)) ? (res.data.data || res.data) : (res && res.data) || res
     const serverConv = payload || {}
 
-    // 基本字段提取
     const id = `${serverConv.id ?? serverConv.conversation_id ?? convId}`
     const title = serverConv.title || '对话'
     const created_at = serverConv.created_at || serverConv.createdAt || new Date().toISOString()
     const updated_at = serverConv.updated_at || serverConv.updatedAt || created_at
 
-    // messages 安全提取并标准化
     let messages = Array.isArray(serverConv.messages) ? serverConv.messages : []
     messages = messages.map(m => ({
       id: m.id ?? m.message_id ?? `msg-${Date.now()}-${Math.random()}`,
@@ -471,16 +465,13 @@ async fetchConversationDetail(convId) {
       created_at: m.created_at ?? m.timestamp ?? dayjs().format()
     }))
 
-    // 按时间排序并保留最近 MAX_CONTEXT 条
     messages.sort((a, b) => dayjs(a.created_at).valueOf() - dayjs(b.created_at).valueOf())
     const MAX_CONTEXT = 20
     if (messages.length > MAX_CONTEXT) messages = messages.slice(-MAX_CONTEXT)
 
-    // info_items 提取（保持后端返回的笔记/记录）
     let info_items = Array.isArray(serverConv.info_items) ? serverConv.info_items : (Array.isArray(serverConv.items) ? serverConv.items : [])
     if (!Array.isArray(info_items)) info_items = []
 
-    // 构建映射对象
     const mapped = {
       id,
       title,
@@ -491,23 +482,19 @@ async fetchConversationDetail(convId) {
       info_count: info_items.length
     }
 
-    // 合并到本地 conversations：如果存在则替换（避免重复 push）
     const existingIndex = this.conversations.findIndex(c => `${c.id}` === `${id}`)
     if (existingIndex >= 0) {
-      // 合并策略：后端消息为准，保留本地 info_items（若本地有）
       const existing = this.conversations[existingIndex] || {}
       mapped.info_items = (existing.info_items && existing.info_items.length) ? existing.info_items : mapped.info_items
       mapped.title = mapped.title || existing.title
       mapped.created_at = mapped.created_at || existing.created_at
       mapped.updated_at = mapped.updated_at || existing.updated_at
-      // 替换而不是 push
       this.conversations.splice(existingIndex, 1, mapped)
     } else {
-      // 若不存在，插入到头部
       this.conversations.unshift(mapped)
     }
 
-    // 去重 conversations 中 messages（防止同一消息重复存在）
+    // 去重 messages
     this.conversations = this.conversations.map(conv => {
       if (!Array.isArray(conv.messages)) return conv
       const unique = []
@@ -535,17 +522,15 @@ async fetchConversationDetail(convId) {
   }
 },
 
-
-/**
- * 发送消息（会调用后端 sendMessage 接口）
- * - 发送成功后会重新拉取对话详情以保证显示一致
- */
 async sendMessage(convId, content) {
   if (!convId) throw new Error('conversation id required')
   if (!content || !content.trim()) throw new Error('message content empty')
   
   try {
-    // 先在本地添加用户消息，提高响应速度
+    // 立即设置 loading 标志，保证 UI 能马上显示 LoadingDots
+    this.isLoading = true
+
+    // 先在本地添加用户消息，提高响应速度（Home 中已不再重复添加）
     const conversation = this.getConversationById(convId)
     if (conversation) {
       if (!Array.isArray(conversation.messages)) {
@@ -559,24 +544,25 @@ async sendMessage(convId, content) {
       })
       this.saveToLocalStorage()
     }
-    
+
     // 调用后端发送消息接口
     const res = await sendMessageService(convId, content)
     
-    // 等待短暂时间（如果后端是异步生成回复，可能需要轮询；这里简单做一次 fetch）
+    // 无论后端是同步还是异步生成回复，统一再次拉取对话详情以保证显示一致
     await this.fetchConversationDetail(convId)
+
     return true
   } catch (e) {
     console.error('sendMessage failed:', e)
+    // 出错时确保关闭 loading 状态，避免 UI 永久卡死
+    this.isLoading = false
     throw e
   }
 },
 
-// 向对话添加信息（本地，仅用于离线或示例）
 addMessage(conversationId, message) {
   const conversation = this.getConversationById(conversationId)
   if (conversation) {
-    // 确保messages数组存在
     if (!Array.isArray(conversation.messages)) {
       conversation.messages = []
     }
@@ -590,7 +576,6 @@ addMessage(conversationId, message) {
 
     conversation.messages.push(newMessage)
     
-    // 同时更新info_items保持兼容性
     if (!Array.isArray(conversation.info_items)) conversation.info_items = []
     conversation.info_items.push({
       id: newMessage.id,
@@ -616,7 +601,6 @@ addConversation(conversationData) {
     created_at: conversationData.created_at || dayjs().format(),
     updated_at: conversationData.updated_at || dayjs().format(),
     info_count: conversationData.info_count || 0,
-    // 确保messages数组存在
     messages: conversationData.messages || [],
     info_items: conversationData.info_items || []
   }
@@ -628,7 +612,36 @@ addConversation(conversationData) {
 
 deleteConversation(id) {
   this.conversations = (this.conversations || []).filter(conv => `${conv.id}` !== `${id}`)
+  // 若删除了当前会话，要调整 currentConversationId
+  if (`${this.currentConversationId}` === `${id}`) {
+    this.currentConversationId = (this.recentConversations && this.recentConversations[0]) ? this.recentConversations[0].id : null
+  }
   this.saveToLocalStorage()
+},
+
+// ---------- 新增：会话选择与获取活跃会话 ----------
+selectConversation(id) {
+  if (!id) return
+  this.currentConversationId = id
+  try {
+    localStorage.setItem('consultCurrentConversation', `${id}`)
+  } catch (e) {
+    console.warn('failed to persist currentConversationId', e)
+  }
+},
+
+// 如果已有 recent conversation 则返回其 id，否则创建一个本地会话并返回 id
+async getOrCreateActiveConversation() {
+  if (this.currentConversationId) return this.currentConversationId
+  const recent = (this.recentConversations && this.recentConversations[0]) ? this.recentConversations[0].id : null
+  if (recent) {
+    this.currentConversationId = recent
+    return recent
+  }
+  // 创建一个本地会话
+  const newId = await this.createConversation('新对话')
+  this.currentConversationId = newId
+  return newId
 }
 }
 })
