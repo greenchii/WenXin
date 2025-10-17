@@ -1,22 +1,23 @@
-/* 总色规定 */
+/* 总色规定 - 与首页保持一致的紫色主题 */
 .meeting-page {
-  --primary: #4c6ef5;
-  --primary-light: #eef2ff;
-  --light-gray: #f1f5f9;
-  --text: #0f172a;
-  --text-light: #64748b;
-  --accent: #4c6ef5; /* 会议页面使用绿色作为强调色 */
-  --border: #e6ecff;
-  --background: #f8fafc;
+  --primary: #8b5cf6; /* 紫色主题色，与logo颜色契合 */
+  --primary-light: #f3f0ff; /* 浅紫色背景 */
+  --primary-lighter: #faf8ff; /* 更浅的紫色背景 */
+  --light-gray: #f8fafc;
+  --text: #1e1b4b; /* 深紫色文字 */
+  --text-light: #6b7280;
+  --accent: #8b5cf6;
+  --border: #e0e7ff;
+  --background: #faf8ff; /* 整体页面浅紫色背景 */
   --card: #ffffff;
-  --danger: #e53e3e;
+  --danger: #dc2626;
 }
 
 /* 大盒子 */
 .records-page {
   padding: 30px;
   min-height: calc(100vh - 44px);
-  background: var(--background);
+  background: linear-gradient(135deg, var(--background) 0%, var(--primary-lighter) 100%);
   overflow:auto;
 }
 
@@ -51,8 +52,9 @@
 /* 表格 */
 .records-table-container {
   background-color: var(--card);
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(12, 34, 88, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.08);
+  border: 1px solid var(--border);
 }
 
 .records-table {

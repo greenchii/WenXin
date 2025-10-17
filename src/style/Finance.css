@@ -1,14 +1,15 @@
 .finance-page  {
-  --primary: #4c6ef5;
-  --primary-light: #eef2ff;
-  --light-gray: #ffffff;
-  --text: #0f172a;
-  --text-light: #64748b;
-  --accent:#4c6ef5;
-  --border:#e6ecff;
-  --background: #f8fafc;
+  --primary: #8b5cf6; /* 紫色主题色，与logo颜色契合 */
+  --primary-light: #f3f0ff; /* 浅紫色背景 */
+  --primary-lighter: #faf8ff; /* 更浅的紫色背景 */
+  --light-gray: #f8fafc;
+  --text: #1e1b4b; /* 深紫色文字 */
+  --text-light: #6b7280;
+  --accent: #8b5cf6;
+  --border: #e0e7ff;
+  --background: #faf8ff; /* 整体页面浅紫色背景 */
   --card: #ffffff;
-  --danger: #e53e3e;
+  --danger: #dc2626;
 }
 
 /* 基础布局 */
@@ -16,7 +17,7 @@
   display: flex;
   flex-direction: column;
   padding: 30px;
-  background: var(--background);
+  background: linear-gradient(135deg, var(--background) 0%, var(--primary-lighter) 100%);
   overflow-x: hidden;
   margin: 0 auto;
 }
@@ -68,9 +69,9 @@
 
 /* 可视化卡片、TODO卡片、表格容器 统一加边框 */
 .visual-card, .todo-card, .table-container {
-  border: 1px solid #e5e7eb; 
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border: 1px solid var(--border); 
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.08);
 }
 
 /* 可视化卡片 */

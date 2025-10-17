@@ -27,7 +27,6 @@
             <div class="message-content assistant-message" v-html="formatMessageContent(msg.content)">
             </div>
 
-            <!-- 操作按钮放在气泡外 -->
             <MessageActions :message="msg" :conv-id="conversationId" />
           </div>
         </template>

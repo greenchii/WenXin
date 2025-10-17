@@ -2,7 +2,8 @@
   <div class="home-container">
     <div class="content-grid">
       <!-- 左侧列：问心助手 -->
-      <AssistantPanel
+      <div class="left-column">
+        <AssistantPanel
         :inputText="inputText"
         @update:inputText="inputText = $event"
         :files="files"
@@ -15,12 +16,16 @@
         :avatarConfig="avatarConfig"
       />
 
+      </div>
+
       <!-- 右侧列：信息分类 -->
-      <RightPanel
-        v-model:selectedTag="selectedTag"
-        :previewItems="previewItems"
-        @removeRecord="removeRecord"
-      />
+      <div class="right-column">
+        <RightPanel
+          v-model:selectedTag="selectedTag"
+          :previewItems="previewItems"
+          @removeRecord="removeRecord"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -102,14 +107,8 @@ const submitInput = async () => {
     }
 
     if (askType.value === 'record') {
-      // 对于记录类型：我们先把本地用户输入写入（保留原有逻辑）
-      historyStore.addMessage(convId, {
-        id: `local-${Date.now()}`,
-        role: 'user',
-        content: userInputContent,
-        created_at: currentTime
-      })
-
+      // 对于记录类型：先上传数据，然后获取AI回复
+      
       // 上传文件/文本
       const formData = new FormData()
       formData.append('conversation_id', convId)
@@ -126,16 +125,8 @@ const submitInput = async () => {
         })
       }
 
-      // assistant 本地提示
-      historyStore.addMessage(convId, {
-        id: `local-assistant-${Date.now()}`,
-        role: 'assistant',
-        content: '记录已保存成功',
-        created_at: dayjs().format()
-      })
-
-      // 刷新对话详情（从后端拉取包含 info_items 等）
-      await historyStore.fetchConversationDetail(convId)
+      // 使用sendMessage获取问心助手的AI回复
+      await historyStore.sendMessage(convId, userInputContent)
 
     } else if (askType.value === 'consult') {
       // 对于咨询（追问）：不要在这里重复 addMessage，

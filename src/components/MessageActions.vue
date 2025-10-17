@@ -287,8 +287,17 @@ function parseAmountFromText(text) {
   display: flex;
   gap: 8px;
   align-items: center;
-  justify-content: flex-end;
   margin-top: 8px;
+}
+
+/* 助手消息的action按钮 - 与信息框左侧对齐 */
+.message-block:not(.user-message-block) .message-actions {
+  justify-content: flex-start;
+}
+
+/* 用户消息的action按钮 - 与信息框右侧对齐 */
+.message-block.user-message-block .message-actions {
+  justify-content: flex-end;
 }
 
 /* 按钮基础 */
