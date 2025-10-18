@@ -79,10 +79,6 @@ defineEmits(['removeRecord'])
   height:96vh;
 }
 
-.right-panel-wrapper .history-panel .hint {
-  margin-top: 8px !important;
-}
-
 .right-panel-wrapper .tag-buttons {
   margin-bottom: 8px;
 }
