@@ -14,8 +14,7 @@
         :conversationId="currentConvId"
         @submit="submitInput"
         :avatarConfig="avatarConfig"
-      />
-
+        />
       </div>
 
       <!-- 右侧列：信息分类 -->

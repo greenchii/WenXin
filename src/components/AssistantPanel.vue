@@ -25,7 +25,6 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue'
 import ConversationHistory from './ConversationHistory.vue'
 import InputArea from './InputArea.vue'
 
